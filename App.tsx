@@ -89,6 +89,8 @@ const App: React.FC = () => {
         coverImage: authUser.coverImage || '',
         notifications: true
       });
+    } else {
+      setCurrentUser(null);
     }
   }, [authUser]);
 
