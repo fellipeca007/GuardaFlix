@@ -7,7 +7,7 @@ export const generateInitialPosts = async (): Promise<Post[]> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: "Generate 5 realistic, modern social media posts. The topics should be positive: nature, technology, design, or daily life. Do not mention politics or controversial topics. Include a mix of short and medium length text.",
+      contents: "Generate 5 realistic, modern social media posts for a community called 'GuardaFlix'. Topics: security, community, daily life, technology, and general positive vibes. Do not focus only on movies unless relevant. Include a mix of short and medium length text.",
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -35,7 +35,7 @@ export const generateInitialPosts = async (): Promise<Post[]> => {
     });
 
     const rawPosts = JSON.parse(response.text || "[]");
-    
+
     // Enrich with placeholder images and avatars
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return rawPosts.map((post: any, index: number) => ({

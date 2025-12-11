@@ -46,7 +46,7 @@ export const Login: React.FC = () => {
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-red-50">
                 <div className="bg-red-600 p-8 text-center">
                     <h1 className="text-3xl font-bold text-white mb-2">GuardaFlix</h1>
-                    <p className="text-red-100">Sua rede social de cinema</p>
+                    <p className="text-red-100">Rede Social do Guardão</p>
                 </div>
 
                 <div className="p-8">

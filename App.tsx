@@ -92,29 +92,40 @@ const App: React.FC = () => {
     }
   }, [authUser]);
 
-  // Initialize Feed with AI content
+  // Initialize Feed
   useEffect(() => {
     const fetchPosts = async () => {
-      const generatedPosts = await generateInitialPosts();
-      setPosts(generatedPosts);
+      // Fetch both AI posts (optional, if you want starter content) AND real posts
+      // For now, let's prioritize Real, then AI if empty?
+      // Or just fetch Real.
+      const realPosts = await PostService.getFeedPosts();
+
+      if (realPosts.length > 0) {
+        setPosts(realPosts);
+      } else {
+        // Fallback to AI only if no real posts exist (to avoid empty feed on fresh install)
+        const generatedPosts = await generateInitialPosts();
+        setPosts(generatedPosts);
+      }
       setLoading(false);
     };
     fetchPosts();
   }, []);
 
-  const handleCreatePost = (content: string, image?: string, sentiment?: string) => {
-    const newPost: Post = {
-      id: Date.now().toString(),
-      user: currentUser,
-      content,
-      image,
-      sentiment, // Save sentiment
-      likes: 0,
-      comments: [],
-      timestamp: 'Agora mesmo',
-      isLiked: false
-    };
-    setPosts([newPost, ...posts]);
+  const handleCreatePost = async (content: string, image?: string, sentiment?: string) => {
+    if (!currentUser) return;
+
+    try {
+      await PostService.createPost(currentUser.id, content, image, sentiment);
+
+      // Refresh feed
+      const updatedPosts = await PostService.getFeedPosts();
+      setPosts(updatedPosts);
+
+    } catch (error) {
+      console.error("Error creating post", error);
+      alert("Erro ao criar post.");
+    }
   };
 
   const handleSavePost = async (postId: string) => {
@@ -150,20 +161,37 @@ const App: React.FC = () => {
       }
     }
   };
-  const handleLike = (postId: string) => {
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
+  const handleLike = async (postId: string) => {
+    if (!currentUser) return;
+
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    // Optimistic Update
+    setPosts(posts.map(p => {
+      if (p.id === postId) {
         return {
-          ...post,
-          likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-          isLiked: !post.isLiked
+          ...p,
+          likes: p.isLiked ? p.likes - 1 : p.likes + 1,
+          isLiked: !p.isLiked
         };
       }
-      return post;
+      return p;
     }));
+
+    try {
+      await PostService.toggleLike(postId, currentUser.id, post.isLiked);
+    } catch (error) {
+      console.error("Error toggling like", error);
+      // Revert if needed
+    }
   };
 
-  const handleAddComment = (postId: string, content: string) => {
+  const handleAddComment = async (postId: string, content: string) => {
+    if (!currentUser) return;
+
+    // Optimistic Update
+    const tempId = Date.now().toString();
     setPosts(posts.map(post => {
       if (post.id === postId) {
         return {
@@ -171,7 +199,7 @@ const App: React.FC = () => {
           comments: [
             ...post.comments,
             {
-              id: Date.now().toString(),
+              id: tempId,
               user: currentUser,
               content,
               timestamp: 'Agora mesmo'
@@ -181,6 +209,13 @@ const App: React.FC = () => {
       }
       return post;
     }));
+
+    try {
+      await PostService.addComment(postId, currentUser.id, content);
+      // Ideally refresh posts or comments to get real ID, but optimistic is fine for now
+    } catch (error) {
+      console.error("Error adding comment", error);
+    }
   };
 
   // Load Friends on Auth
