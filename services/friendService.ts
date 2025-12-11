@@ -33,7 +33,7 @@ export const FriendService = {
             .from('relationships')
             .select(`
         following_id,
-        profiles:following_id (
+        profiles:profiles!relationships_following_id_fkey (
           id,
           display_name,
           handle,

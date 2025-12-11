@@ -64,8 +64,8 @@ export const PostService = {
             .from('posts')
             .select(`
                 *,
-                user:profiles(id, display_name, handle, avatar_url),
-                comments:comments(id, content, created_at, user:profiles(id, display_name, handle, avatar_url)),
+                user:profiles!posts_user_id_fkey(id, display_name, handle, avatar_url),
+                comments:comments(id, content, created_at, user:profiles!comments_user_id_fkey(id, display_name, handle, avatar_url)),
                 likes_count:post_likes(count)
             `)
             .order('created_at', { ascending: false })
