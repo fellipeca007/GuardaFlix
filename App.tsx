@@ -95,22 +95,12 @@ const App: React.FC = () => {
   // Initialize Feed
   useEffect(() => {
     const fetchPosts = async () => {
-      // Fetch both AI posts (optional, if you want starter content) AND real posts
-      // For now, let's prioritize Real, then AI if empty?
-      // Or just fetch Real.
       const realPosts = await PostService.getFeedPosts();
-
-      if (realPosts.length > 0) {
-        setPosts(realPosts);
-      } else {
-        // Fallback to AI only if no real posts exist (to avoid empty feed on fresh install)
-        const generatedPosts = await generateInitialPosts();
-        setPosts(generatedPosts);
-      }
+      setPosts(realPosts);
       setLoading(false);
     };
     fetchPosts();
-  }, []);
+  }, [currentUser]);
 
   const handleCreatePost = async (content: string, image?: string, sentiment?: string) => {
     if (!currentUser) return;
