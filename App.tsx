@@ -162,12 +162,14 @@ const App: React.FC = () => {
 
     try {
       await FriendService.followUser(currentUser.id, targetUserId);
+      console.log("✅ Solicitação de amizade enviada com sucesso!");
     } catch (error) {
-      console.error("Error requesting follow", error);
+      console.error("❌ Erro ao enviar solicitação:", error);
+      alert("Erro ao enviar solicitação de amizade. Tente novamente.");
       // Revert
       setSearchResults(prev => prev.map(u => {
         if (u.id === targetUserId) {
-          return { ...u, status: 'none' }; // Guess
+          return { ...u, status: 'none' };
         }
         return u;
       }));
@@ -199,9 +201,15 @@ const App: React.FC = () => {
 
     try {
       await FriendService.acceptRequest(currentUser.id, requesterId);
+      console.log("✅ Solicitação aceita com sucesso!");
+      // Reload friends list to show the new friend
+      loadFriends();
+      loadFeed(); // Refresh feed to show new friend's posts
     } catch (error) {
-      console.error("Error accepting", error);
-      loadFriendRequests();
+      console.error("❌ Erro ao aceitar solicitação:", error);
+      alert("Erro ao aceitar solicitação. Tente novamente.");
+      loadFriendRequests(); // Reload to revert
+      setFollowersCount(c => c - 1); // Revert count
     }
   };
 
@@ -426,7 +434,7 @@ const App: React.FC = () => {
                     ) : user.status === 'pending' ? (
                       <button disabled className="text-slate-500 bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium">Solicitado</button>
                     ) : (
-                      <button onClick={() => handleFollow(user.id)} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700">Seguir</button>
+                      <button onClick={() => handleFollow(user.id)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">Solicitar</button>
                     )}
                   </div>
                 </div>
