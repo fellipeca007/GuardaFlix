@@ -3,14 +3,18 @@ import { Post, Comment } from '../types';
 
 interface PostCardProps {
   post: Post;
+  currentUserId?: string; // New: to check ownership
   onLike: (postId: string) => void;
   onAddComment: (postId: string, content: string) => void;
-  onSave?: (postId: string) => void; // Optional for compatibility
+  onSave?: (postId: string) => void;
+  onDelete?: (postId: string) => void; // New: delete callback
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onSave }) => {
+export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onLike, onAddComment, onSave, onDelete }) => {
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
+
+  const isOwner = currentUserId === post.user.id;
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +26,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, 
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-red-50 p-4 mb-6 transition-all duration-300 hover:shadow-md">
+    <div className="bg-white rounded-2xl shadow-sm border border-red-50 p-4 mb-6 transition-all duration-300 hover:shadow-md relative">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -43,13 +47,33 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, 
             </div>
           </div>
         </div>
-        <button
-          onClick={() => onSave && onSave(post.id)}
-          className={`text-slate-400 hover:text-red-600 transition-colors ${post.isSaved ? 'text-red-600 fill-current' : ''}`}
-          title={post.isSaved ? "Desfazer salvamento" : "Salvar post"}
-        >
-          <svg className={`w-5 h-5 ${post.isSaved ? 'fill-red-600' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
-        </button>
+
+        <div className="flex items-center space-x-2">
+          {/* Delete Button (only for owner) */}
+          {isOwner && onDelete && (
+            <button
+              onClick={() => {
+                if (window.confirm("Apagar este post?")) {
+                  onDelete(post.id);
+                }
+              }}
+              className="text-slate-400 hover:text-red-600 transition-colors p-1"
+              title="Apagar Post"
+            >
+              <svg className="w-5 h-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+
+          <button
+            onClick={() => onSave && onSave(post.id)}
+            className={`text-slate-400 hover:text-red-600 transition-colors ${post.isSaved ? 'text-red-600 fill-current' : ''}`}
+            title={post.isSaved ? "Desfazer salvamento" : "Salvar post"}
+          >
+            <svg className={`w-5 h-5 ${post.isSaved ? 'fill-red-600' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
+          </button>
+        </div>
       </div>
 
       {/* Content */}

@@ -41,7 +41,8 @@ export const FriendService = {
           bio
         )
       `)
-            .eq('follower_id', currentUserId);
+            .eq('follower_id', currentUserId)
+            .eq('status', 'accepted'); // Only accepted friends
 
         if (error) {
             console.error('Error getting friends:', error);
@@ -62,7 +63,8 @@ export const FriendService = {
         const { count, error } = await supabase
             .from('relationships')
             .select('*', { count: 'exact', head: true })
-            .eq('following_id', userId);
+            .eq('following_id', userId)
+            .eq('status', 'accepted'); // Only accepted followers
 
         if (error) {
             console.error('Error getting followers count:', error);
@@ -72,9 +74,14 @@ export const FriendService = {
     },
 
     async followUser(currentUserId: string, targetUserId: string) {
+        // Create request with 'pending' status
         const { error } = await supabase
             .from('relationships')
-            .insert({ follower_id: currentUserId, following_id: targetUserId });
+            .insert({
+                follower_id: currentUserId,
+                following_id: targetUserId,
+                status: 'pending'
+            });
 
         if (error) throw error;
     },
@@ -88,15 +95,65 @@ export const FriendService = {
         if (error) throw error;
     },
 
-    async checkIsFollowing(currentUserId: string, targetUserId: string) {
+    async checkIsFollowing(currentUserId: string, targetUserId: string): Promise<string> {
         const { data, error } = await supabase
             .from('relationships')
-            .select('*')
+            .select('status')
             .match({ follower_id: currentUserId, following_id: targetUserId })
             .single();
 
-        if (error && error.code !== 'PGRST116') return false;
-        return !!data;
+        if (error || !data) return 'none';
+        return data.status || 'none';
+    },
+
+    async getPendingRequests(currentUserId: string) {
+        // Who wants to follow ME? So I am the following_id, they are follower_id
+        const { data, error } = await supabase
+            .from('relationships')
+            .select(`
+                follower_id,
+                created_at,
+                profiles:profiles!relationships_follower_id_fkey (
+                    id,
+                    display_name,
+                    handle,
+                    avatar_url
+                )
+            `)
+            .eq('following_id', currentUserId)
+            .eq('status', 'pending');
+
+        if (error) {
+            console.error("Error fetching requests", error);
+            return [];
+        }
+
+        return data.map((item: any) => ({
+            id: item.profiles.id,
+            name: item.profiles.display_name,
+            handle: item.profiles.handle,
+            avatar: item.profiles.avatar_url,
+            timestamp: item.created_at
+        }));
+    },
+
+    async acceptRequest(currentUserId: string, requesterId: string) {
+        // I am accepting THEIR request. I am following_id, they are follower_id.
+        const { error } = await supabase
+            .from('relationships')
+            .update({ status: 'accepted' })
+            .match({ following_id: currentUserId, follower_id: requesterId });
+
+        if (error) throw error;
+    },
+
+    async rejectRequest(currentUserId: string, requesterId: string) {
+        const { error } = await supabase
+            .from('relationships')
+            .delete()
+            .match({ following_id: currentUserId, follower_id: requesterId });
+
+        if (error) throw error;
     },
 
     async getSuggestions(currentUserId: string) {
@@ -111,17 +168,22 @@ export const FriendService = {
             return [];
         }
 
-        const friends = await this.getFriends(currentUserId);
-        const friendIds = new Set(friends.map((f: any) => f.id));
+        // Filter out people I already follow (pending or accepted)
+        const { data: myRelationships } = await supabase
+            .from('relationships')
+            .select('following_id')
+            .eq('follower_id', currentUserId);
+
+        const followedIds = new Set(myRelationships?.map(r => r.following_id) || []);
 
         const suggestions = data
-            .filter((profile: any) => !friendIds.has(profile.id))
-            .slice(0, 3)
+            .filter((profile: any) => !followedIds.has(profile.id))
+            .slice(0, 5)
             .map((profile: any) => ({
                 id: profile.id,
                 name: profile.display_name || 'Usuário',
                 avatar: profile.avatar_url || 'https://picsum.photos/seed/default/50/50',
-                info: 'Sugestão para você',
+                info: 'Sugestão',
                 isFollowing: false
             }));
 

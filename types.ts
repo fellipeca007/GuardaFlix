@@ -6,6 +6,17 @@ export interface User {
   coverImage?: string;
   coverPosition?: string; // CSS object-position value
   bio?: string;
+  isPrivate?: boolean; // New: privacy setting
+}
+
+export type FriendshipStatus = 'pending' | 'accepted' | 'rejected' | 'none';
+
+export interface FriendRequest {
+  id: string; // User ID of the requester
+  name: string;
+  avatar: string;
+  handle: string;
+  timestamp: string;
 }
 
 export interface Comment {
@@ -32,7 +43,8 @@ export enum ViewState {
   PROFILE = 'PROFILE',
   SETTINGS = 'SETTINGS',
   FRIENDS = 'FRIENDS',
-  SAVED = 'SAVED'
+  SAVED = 'SAVED',
+  NOTIFICATIONS = 'NOTIFICATIONS'
 }
 
 export interface FriendSuggestion {
@@ -41,4 +53,5 @@ export interface FriendSuggestion {
   avatar: string;
   info: string;
   isFollowing: boolean;
+  status?: FriendshipStatus; // Add status to track pending requests
 }

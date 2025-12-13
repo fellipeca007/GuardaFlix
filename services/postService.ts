@@ -59,8 +59,8 @@ export const PostService = {
 
     // --- New Realtime Post Methods ---
 
-    async getFeedPosts(): Promise<Post[]> {
-        const { data: posts, error } = await supabase
+    async getFeedPosts(currentUserId?: string): Promise<Post[]> {
+        let postQuery = supabase
             .from('posts')
             .select(`
                 *,
@@ -69,15 +69,40 @@ export const PostService = {
                 likes_count:post_likes(count)
             `)
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(50);
+
+        if (currentUserId) {
+            // Get list of people I follow with ACCEPTED status
+            const { data: following } = await supabase
+                .from('relationships')
+                .select('following_id')
+                .eq('follower_id', currentUserId)
+                .eq('status', 'accepted');
+
+            const followingIds = following?.map(f => f.following_id) || [];
+            // Include my own posts
+            followingIds.push(currentUserId);
+
+            postQuery = postQuery.in('user_id', followingIds);
+        }
+
+        const { data: posts, error } = await postQuery;
 
         if (error) {
             console.error('Error fetching feed:', error);
             return [];
         }
 
-        const { data: userLikes } = await supabase.from('post_likes').select('post_id');
-        const likedPostIds = new Set(userLikes?.map(l => l.post_id) || []);
+        // Fetch likes for isLiked status
+        let likedPostIds = new Set();
+        if (currentUserId) {
+            const { data: userLikes } = await supabase
+                .from('post_likes')
+                .select('post_id')
+                .eq('user_id', currentUserId);
+            likedPostIds = new Set(userLikes?.map(l => l.post_id) || []);
+        }
+
 
         return posts.map((post: any) => ({
             id: post.id,
@@ -113,6 +138,15 @@ export const PostService = {
             image_url: imageUrl,
             sentiment
         });
+        if (error) throw error;
+    },
+
+    async deletePost(postId: string, userId: string): Promise<void> {
+        const { error } = await supabase
+            .from('posts')
+            .delete()
+            .match({ id: postId, user_id: userId });
+
         if (error) throw error;
     },
 
