@@ -38,6 +38,12 @@ const App: React.FC = () => {
   // Suggestions State
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([]);
 
+  // Friends Tab State
+  const [friendsTab, setFriendsTab] = useState<'suggestions' | 'received' | 'sent'>('suggestions');
+
+  // Sent Requests State (requests I sent)
+  const [sentRequests, setSentRequests] = useState<any[]>([]);
+
   // Validation State
   const [handleError, setHandleError] = useState<string | null>(null);
 
@@ -86,6 +92,7 @@ const App: React.FC = () => {
       loadSuggestions();
       loadSavedPosts();
       loadFriendRequests();
+      loadSentRequests();
     }
   }, [currentUser]);
 
@@ -111,6 +118,17 @@ const App: React.FC = () => {
     const reqs = await FriendService.getPendingRequests(currentUser.id);
     setFriendRequests(reqs);
     setRequestsLoading(false);
+  };
+
+  const loadSentRequests = async () => {
+    if (!currentUser) return;
+    // Get requests I sent that are still pending
+    const allUsers = await FriendService.searchUsers('', currentUser.id);
+    const enriched = await Promise.all((allUsers || []).map(async (u: any) => {
+      const status = await FriendService.checkIsFollowing(currentUser.id, u.id);
+      return { ...u, status };
+    }));
+    setSentRequests(enriched.filter(u => u.status === 'pending'));
   };
 
   const loadSuggestions = async () => {
@@ -342,7 +360,7 @@ const App: React.FC = () => {
   if (!currentUser) return <Login />;
 
   return (
-    <Layout currentView={view} setView={setView} user={currentUser}>
+    <Layout currentView={view} setView={setView} user={currentUser} onCreatePost={() => setView(ViewState.FEED)}>
       {view === ViewState.FEED && (
         <div className="space-y-6">
           {/* Create Post */}
@@ -400,49 +418,130 @@ const App: React.FC = () => {
 
       {view === ViewState.FRIENDS && (
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-slate-900">Explorar</h2>
+          <h2 className="text-2xl font-bold text-white">Amizades</h2>
 
-          {/* Search */}
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-3 border border-slate-700 rounded-xl bg-slate-800 text-white placeholder-slate-400 focus:bg-slate-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-              placeholder="Buscar pessoas..."
-              value={friendSearchQuery}
-              onChange={(e) => setFriendSearchQuery(e.target.value)}
-            />
+          {/* Tabs */}
+          <div className="flex gap-2 border-b border-slate-700">
+            <button
+              onClick={() => setFriendsTab('suggestions')}
+              className={`px-4 py-2 font-medium transition-colors ${friendsTab === 'suggestions'
+                ? 'text-blue-500 border-b-2 border-blue-500'
+                : 'text-slate-400 hover:text-slate-300'
+                }`}
+            >
+              Sugestões ({suggestions.length})
+            </button>
+            <button
+              onClick={() => setFriendsTab('received')}
+              className={`px-4 py-2 font-medium transition-colors ${friendsTab === 'received'
+                ? 'text-blue-500 border-b-2 border-blue-500'
+                : 'text-slate-400 hover:text-slate-300'
+                }`}
+            >
+              Pendentes ({friendRequests.length})
+            </button>
+            <button
+              onClick={() => setFriendsTab('sent')}
+              className={`px-4 py-2 font-medium transition-colors ${friendsTab === 'sent'
+                ? 'text-blue-500 border-b-2 border-blue-500'
+                : 'text-slate-400 hover:text-slate-300'
+                }`}
+            >
+              Solicitadas ({sentRequests.length})
+            </button>
           </div>
 
-          {/* Results */}
-          {searchResults.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4">
-              {searchResults.map(user => (
-                <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-xl shadow-sm">
-                  <div className="flex items-center space-x-3">
-                    <img src={user.avatar} className="w-12 h-12 rounded-full object-cover" />
-                    <div>
-                      <div className="font-bold text-white">{user.name}</div>
-                      <div className="text-sm text-slate-400">{user.handle}</div>
+          {/* Suggestions Tab */}
+          {friendsTab === 'suggestions' && (
+            <div className="space-y-4">
+              {suggestions.length > 0 ? (
+                suggestions.map(user => (
+                  <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-xl shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <img src={user.avatar} className="w-12 h-12 rounded-full object-cover" alt={user.name} />
+                      <div>
+                        <div className="font-bold text-white">{user.name}</div>
+                        <div className="text-sm text-slate-400">{user.info}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await handleFollow(user.id);
+                        loadSuggestions();
+                        loadSentRequests();
+                      }}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 bg-slate-800 rounded-xl">
+                  <p className="text-slate-400">Nenhuma sugestão no momento</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Received Requests Tab */}
+          {friendsTab === 'received' && (
+            <div className="space-y-4">
+              {requestsLoading ? (
+                <div className="text-slate-400 text-center py-8">Carregando...</div>
+              ) : friendRequests.length > 0 ? (
+                friendRequests.map(req => (
+                  <FriendRequestCard
+                    key={req.id}
+                    request={req}
+                    onAccept={async (id) => {
+                      await handleAcceptRequest(id);
+                      loadSuggestions();
+                    }}
+                    onReject={handleRejectRequest}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12 bg-slate-800 rounded-xl">
+                  <p className="text-slate-400">Nenhuma solicitação pendente</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sent Requests Tab */}
+          {friendsTab === 'sent' && (
+            <div className="space-y-4">
+              {sentRequests.length > 0 ? (
+                sentRequests.map(user => (
+                  <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-xl shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <img src={user.avatar} className="w-12 h-12 rounded-full object-cover" alt={user.name} />
+                      <div>
+                        <div className="font-bold text-white">{user.name}</div>
+                        <div className="text-sm text-slate-400">{user.handle}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500 text-sm font-medium bg-yellow-500/10 px-3 py-1 rounded-full">Aguardando</span>
+                      <button
+                        onClick={async () => {
+                          await handleUnfollow(user.id);
+                          loadSentRequests();
+                          loadSuggestions();
+                        }}
+                        className="text-red-400 hover:text-red-300 text-sm font-medium"
+                      >
+                        Cancelar
+                      </button>
                     </div>
                   </div>
-                  <div>
-                    {user.status === 'accepted' ? (
-                      <span className="text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full">Amigos</span>
-                    ) : user.status === 'pending' ? (
-                      <button disabled className="text-slate-500 bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium">Solicitado</button>
-                    ) : (
-                      <button onClick={() => handleFollow(user.id)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">Solicitar</button>
-                    )}
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 bg-slate-800 rounded-xl">
+                  <p className="text-slate-400">Nenhuma solicitação enviada</p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-slate-400 text-center py-8">
-              {friendSearchQuery ? "Nenhum usuário encontrado." : "Busque por nome ou @usuario"}
+              )}
             </div>
           )}
         </div>

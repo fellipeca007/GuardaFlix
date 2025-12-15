@@ -9,10 +9,11 @@ interface LayoutProps {
     currentView: ViewState;
     setView: (view: ViewState) => void;
     user: User;
+    onCreatePost: () => void; // New prop
 }
 
 // Dark Mode Layout
-export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, user }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, user, onCreatePost }) => {
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 font-sans pb-20 lg:pb-0">
             {/* Mobile Top Bar (Navbar simplified) */}
@@ -43,7 +44,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
             </div>
 
             {/* Mobile Bottom Nav */}
-            <MobileNav currentView={currentView} setView={setView} />
+            <MobileNav currentView={currentView} setView={setView} onCreatePost={onCreatePost} />
         </div>
     );
 };

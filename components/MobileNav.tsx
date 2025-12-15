@@ -1,12 +1,14 @@
 import React from 'react';
 import { ViewState } from '../types';
 
+
 interface MobileNavProps {
   currentView: ViewState;
   setView: (view: ViewState) => void;
+  onCreatePost: () => void; // New prop for creating posts
 }
 
-export const MobileNav: React.FC<MobileNavProps> = ({ currentView, setView }) => {
+export const MobileNav: React.FC<MobileNavProps> = ({ currentView, setView, onCreatePost }) => {
   const getIcon = (id: string, active: boolean) => {
     // Feed / Home Icon
     if (id === ViewState.FEED) {
@@ -46,18 +48,6 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentView, setView }) =>
         </svg>
       )
     }
-    // Saved / Bookmark Icon
-    if (id === 'SAVED') {
-      return active ? (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clipRule="evenodd" />
-        </svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-        </svg>
-      )
-    }
     // Notifications / Alerts Icon
     if (id === ViewState.NOTIFICATIONS) {
       return active ? (
@@ -70,49 +60,57 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentView, setView }) =>
         </svg>
       )
     }
-    // Settings Icon
-    if (id === ViewState.SETTINGS) {
-      return active ? (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clipRule="evenodd" />
-        </svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      )
-    }
   }
 
   const menuItems = [
     { id: ViewState.FEED, label: 'Home' },
-    { id: ViewState.FRIENDS, label: 'Pesquisar' },
+    { id: ViewState.FRIENDS, label: 'Amigos' },
+    { id: 'CREATE_POST', label: '' }, // Placeholder for create button
     { id: ViewState.NOTIFICATIONS, label: 'Alertas' },
     { id: ViewState.PROFILE, label: 'Perfil' },
   ];
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex justify-around items-center px-1 pb-safe pt-2 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)]">
-      {menuItems.map((item) => (
-        <button
-          key={item.id}
-          onClick={() => {
-            if (Object.values(ViewState).includes(item.id as ViewState) || item.id === 'SAVED') {
-              setView(item.id as ViewState);
-            }
-          }}
-          className={`flex flex-col items-center justify-center w-full py-2 rounded-lg transition-colors active:scale-95 ${currentView === item.id
-            ? 'text-blue-500'
-            : 'text-slate-500 hover:bg-slate-800'
-            }`}
-        >
-          <div className={`${currentView === item.id ? 'transform -translate-y-1 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : ''} transition-transform duration-200`}>
-            {getIcon(item.id, currentView === item.id)}
-          </div>
-          <span className={`text-[10px] font-medium mt-1 ${currentView === item.id ? 'font-bold' : ''}`}>{item.label}</span>
-        </button>
-      ))}
+      {menuItems.map((item, index) => {
+        // Special handling for the create post button (middle item)
+        if (item.id === 'CREATE_POST') {
+          return (
+            <button
+              key={item.id}
+              onClick={onCreatePost}
+              className="flex flex-col items-center justify-center w-full py-2 transition-all active:scale-95"
+            >
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full p-3 shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70 transition-all hover:scale-110">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 text-white">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </div>
+            </button>
+          );
+        }
+
+        // Regular menu items
+        return (
+          <button
+            key={item.id}
+            onClick={() => {
+              if (Object.values(ViewState).includes(item.id as ViewState)) {
+                setView(item.id as ViewState);
+              }
+            }}
+            className={`flex flex-col items-center justify-center w-full py-2 rounded-lg transition-colors active:scale-95 ${currentView === item.id
+              ? 'text-blue-500'
+              : 'text-slate-500 hover:bg-slate-800'
+              }`}
+          >
+            <div className={`${currentView === item.id ? 'transform -translate-y-1 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : ''} transition-transform duration-200`}>
+              {getIcon(item.id, currentView === item.id)}
+            </div>
+            <span className={`text-[10px] font-medium mt-1 ${currentView === item.id ? 'font-bold' : ''}`}>{item.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };
