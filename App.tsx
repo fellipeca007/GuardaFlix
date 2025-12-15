@@ -548,14 +548,45 @@ const App: React.FC = () => {
       )}
 
       {view === ViewState.PROFILE && (
-        <div className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 overflow-hidden">
-          {/* Profile Header - Instagram Style */}
-          <div className="p-6">
+        <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-slate-700/50 overflow-hidden">
+          {/* Futuristic Background Effects */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          {/* Profile Header - Futuristic Style */}
+          <div className="relative p-6 backdrop-blur-sm">
+            {/* Settings & Logout Button */}
+            <div className="absolute top-4 right-4 flex gap-2 z-10">
+              <button
+                onClick={() => setView(ViewState.SETTINGS)}
+                className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/50 text-slate-300 hover:text-white transition-all hover:scale-110 backdrop-blur-sm"
+                title="Configurações"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              <button
+                onClick={signOut}
+                className="p-2 rounded-xl bg-gradient-to-r from-red-600/80 to-pink-600/80 hover:from-red-500 hover:to-pink-500 border border-red-500/50 text-white transition-all hover:scale-110 backdrop-blur-sm shadow-lg shadow-red-500/20"
+                title="Sair"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
             <div className="flex items-start gap-6 mb-6">
-              {/* Avatar with Repositioning */}
+              {/* Avatar with Repositioning - Futuristic */}
               <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-md opacity-50 animate-pulse"></div>
                 <div
-                  className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 ${isRepositioning ? 'cursor-move ring-4 ring-blue-500' : ''}`}
+                  className={`relative w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 bg-slate-800 ${isRepositioning
+                    ? 'cursor-move ring-4 ring-blue-500 shadow-2xl shadow-blue-500/50'
+                    : 'border-slate-600 shadow-xl shadow-purple-500/20'
+                    } transition-all`}
                   onMouseDown={handleCoverMouseDown}
                   onMouseMove={handleCoverMouseMove}
                   onMouseUp={handleCoverMouseUp}
@@ -571,25 +602,25 @@ const App: React.FC = () => {
 
                 {/* Reposition Controls */}
                 {isRepositioning && (
-                  <div className="absolute -bottom-12 left-0 right-0 flex gap-2 justify-center">
+                  <div className="absolute -bottom-14 left-0 right-0 flex gap-2 justify-center">
                     <button
                       onClick={saveReposition}
-                      className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-lg hover:bg-blue-700"
+                      className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70 hover:scale-105 transition-all"
                     >
-                      Salvar
+                      ✓ Salvar
                     </button>
                     <button
                       onClick={cancelReposition}
-                      className="bg-slate-700 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-slate-600"
+                      className="bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-600 hover:scale-105 transition-all"
                     >
-                      Cancelar
+                      ✕ Cancelar
                     </button>
                   </div>
                 )}
                 {!isRepositioning && (
                   <button
                     onClick={startReposition}
-                    className="absolute bottom-0 right-0 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-full transition-colors shadow-lg"
+                    className="absolute bottom-0 right-0 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-2 rounded-full transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110"
                     title="Reposicionar foto"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -599,44 +630,69 @@ const App: React.FC = () => {
                 )}
               </div>
 
-              {/* Stats - Desktop */}
+              {/* Stats - Desktop - Futuristic */}
               <div className="hidden sm:flex flex-1 justify-around items-center">
-                <div className="text-center">
-                  <span className="font-bold text-white text-xl block">{posts.filter(p => p.user.id === currentUser.id).length}</span>
-                  <span className="text-sm text-slate-400">publicações</span>
+                <div className="text-center group cursor-pointer">
+                  <div className="relative">
+                    <span className="font-bold text-white text-2xl block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">
+                      {posts.filter(p => p.user.id === currentUser.id).length}
+                    </span>
+                    <div className="absolute inset-0 bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </div>
+                  <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">publicações</span>
                 </div>
-                <div className="text-center">
-                  <span className="font-bold text-white text-xl block">{followersCount}</span>
-                  <span className="text-sm text-slate-400">seguidores</span>
+                <div className="text-center group cursor-pointer">
+                  <div className="relative">
+                    <span className="font-bold text-white text-2xl block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">
+                      {followersCount}
+                    </span>
+                    <div className="absolute inset-0 bg-purple-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </div>
+                  <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">seguidores</span>
                 </div>
-                <div className="text-center">
-                  <span className="font-bold text-white text-xl block">{friends.length}</span>
-                  <span className="text-sm text-slate-400">seguindo</span>
+                <div className="text-center group cursor-pointer">
+                  <div className="relative">
+                    <span className="font-bold text-white text-2xl block bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">
+                      {friends.length}
+                    </span>
+                    <div className="absolute inset-0 bg-pink-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </div>
+                  <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">seguindo</span>
                 </div>
               </div>
             </div>
 
-            {/* User Info */}
-            <div className="space-y-1">
-              <h1 className="text-lg font-bold text-white">{currentUser.name}</h1>
-              <p className="text-sm text-slate-400">{currentUser.handle}</p>
+            {/* User Info - Futuristic */}
+            <div className="space-y-2 backdrop-blur-sm bg-slate-800/30 rounded-2xl p-4 border border-slate-700/50">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+                {currentUser.name}
+              </h1>
+              <p className="text-sm text-blue-400 font-medium">{currentUser.handle}</p>
               {currentUser.bio && (
-                <p className="text-sm text-slate-300 mt-2 whitespace-pre-wrap">{currentUser.bio}</p>
+                <p className="text-sm text-slate-300 mt-3 leading-relaxed whitespace-pre-wrap">
+                  {currentUser.bio}
+                </p>
               )}
             </div>
 
-            {/* Stats - Mobile */}
-            <div className="flex sm:hidden justify-around mt-6 pt-6 border-t border-slate-800">
+            {/* Stats - Mobile - Futuristic */}
+            <div className="flex sm:hidden justify-around mt-6 pt-6 border-t border-slate-700/50">
               <div className="text-center">
-                <span className="font-bold text-white block">{posts.filter(p => p.user.id === currentUser.id).length}</span>
+                <span className="font-bold text-white text-lg block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                  {posts.filter(p => p.user.id === currentUser.id).length}
+                </span>
                 <span className="text-xs text-slate-400">publicações</span>
               </div>
               <div className="text-center">
-                <span className="font-bold text-white block">{followersCount}</span>
+                <span className="font-bold text-white text-lg block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  {followersCount}
+                </span>
                 <span className="text-xs text-slate-400">seguidores</span>
               </div>
               <div className="text-center">
-                <span className="font-bold text-white block">{friends.length}</span>
+                <span className="font-bold text-white text-lg block bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent">
+                  {friends.length}
+                </span>
                 <span className="text-xs text-slate-400">seguindo</span>
               </div>
             </div>

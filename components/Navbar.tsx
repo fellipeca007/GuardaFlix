@@ -13,10 +13,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, user }) =>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
         {/* Logo */}
         <div className="flex items-center cursor-pointer" onClick={() => setView(ViewState.FEED)}>
-          <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-xl mr-2 shadow-lg shadow-red-200 transform rotate-3 hover:rotate-0 transition-transform">
-            G
-          </div>
-          <span className="text-2xl font-bold text-red-600 hidden sm:block tracking-tight">
+          <img src="/logo.png" alt="GuardaFlix" className="w-10 h-10 rounded-lg shadow-lg transform hover:scale-110 transition-transform" />
+          <span className="text-2xl font-bold text-red-600 hidden sm:block tracking-tight ml-2">
             Guardaflix
           </span>
         </div>
@@ -44,8 +42,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, user }) =>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
           </button>
-          
-          <div 
+
+          <div
             className="h-10 w-10 rounded-full bg-red-100 overflow-hidden cursor-pointer border-2 border-red-500 hover:ring-2 hover:ring-red-300 transition-all"
             onClick={() => setView(ViewState.PROFILE)}
           >
