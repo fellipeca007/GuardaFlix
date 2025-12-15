@@ -12,7 +12,7 @@ interface PostCardProps {
 
 export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onLike, onAddComment, onSave, onDelete }) => {
   const [commentText, setCommentText] = useState('');
-  const [showComments, setShowComments] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const isOwner = currentUserId === post.user.id;
 
@@ -21,7 +21,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onLike,
     if (commentText.trim()) {
       onAddComment(post.id, commentText);
       setCommentText('');
-      setShowComments(true);
     }
   };
 
@@ -48,31 +47,54 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onLike,
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {/* Delete Button (only for owner) */}
-          {isOwner && onDelete && (
-            <button
-              onClick={() => {
-                if (window.confirm("Apagar este post?")) {
-                  onDelete(post.id);
-                }
-              }}
-              className="text-slate-400 hover:text-red-600 transition-colors p-1"
-              title="Apagar Post"
-            >
-              <svg className="w-5 h-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          )}
-
+        {/* 3 Dots Menu */}
+        <div className="relative">
           <button
-            onClick={() => onSave && onSave(post.id)}
-            className={`text-slate-400 hover:text-red-600 transition-colors ${post.isSaved ? 'text-red-600 fill-current' : ''}`}
-            title={post.isSaved ? "Desfazer salvamento" : "Salvar post"}
+            onClick={() => setShowMenu(!showMenu)}
+            className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100"
+            title="Mais opções"
           >
-            <svg className={`w-5 h-5 ${post.isSaved ? 'fill-red-600' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+            </svg>
           </button>
+
+          {/* Dropdown Menu */}
+          {showMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+                {isOwner && onDelete && (
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      if (window.confirm("Apagar este post?")) {
+                        onDelete(post.id);
+                      }
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Excluir publicação
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onSave && onSave(post.id);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                  {post.isSaved ? "Remover dos salvos" : "Salvar publicação"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -94,74 +116,73 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onLike,
           </div>
           <span>{post.likes} curtidas</span>
         </div>
-        <div className="cursor-pointer hover:underline" onClick={() => setShowComments(!showComments)}>
+        <div>
           {post.comments.length} comentários
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center justify-between border-t border-b border-red-50 py-1 mb-4">
+      {/* Actions - Only Icons */}
+      <div className="flex items-center justify-around border-t border-b border-red-50 py-2 mb-4">
         <button
           onClick={() => onLike(post.id)}
-          className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg transition-colors ${post.isLiked ? 'text-red-600 font-medium' : 'text-slate-500 hover:bg-red-50'}`}
+          className={`flex items-center justify-center p-2 rounded-lg transition-all hover:scale-110 ${post.isLiked ? 'text-red-600' : 'text-slate-500 hover:bg-red-50'}`}
+          title="Curtir"
         >
-          <svg className={`w-5 h-5 ${post.isLiked ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-6 h-6 ${post.isLiked ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
           </svg>
-          <span>Curtir</span>
         </button>
         <button
-          onClick={() => setShowComments(!showComments)}
-          className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-slate-500 hover:bg-red-50 transition-colors"
+          className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-red-50 transition-all hover:scale-110"
+          title="Comentar"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-          <span>Comentar</span>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
         </button>
-        <button className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-slate-500 hover:bg-red-50 transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-          <span>Compartilhar</span>
+        <button
+          className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-red-50 transition-all hover:scale-110"
+          title="Compartilhar"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
         </button>
       </div>
 
-      {/* Comment Section */}
-      {showComments && (
-        <div className="space-y-4">
-          {post.comments.map(comment => (
-            <div key={comment.id} className="flex space-x-2">
-              <img src={comment.user.avatar} alt={comment.user.name} className="w-8 h-8 rounded-full object-cover" />
-              <div className="bg-red-50/50 p-3 rounded-2xl rounded-tl-none">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-bold text-xs text-slate-800">{comment.user.name}</span>
-                  <span className="text-xs text-slate-400">{comment.timestamp}</span>
-                </div>
-                <p className="text-sm text-slate-700">{comment.content}</p>
+      {/* Comment Section - Always Visible */}
+      <div className="space-y-4">
+        {post.comments.map(comment => (
+          <div key={comment.id} className="flex space-x-2">
+            <img src={comment.user.avatar} alt={comment.user.name} className="w-8 h-8 rounded-full object-cover" />
+            <div className="bg-red-50/50 p-3 rounded-2xl rounded-tl-none flex-1">
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="font-bold text-xs text-slate-800">{comment.user.name}</span>
+                <span className="text-xs text-slate-400">{comment.timestamp}</span>
               </div>
+              <p className="text-sm text-slate-700">{comment.content}</p>
             </div>
-          ))}
-
-          <div className="flex items-start space-x-2 pt-2">
-            <img src="https://picsum.photos/seed/me/150/150" alt="Current User" className="w-8 h-8 rounded-full object-cover" />
-            <form onSubmit={handleSubmitComment} className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Escreva um comentário..."
-                className="w-full bg-slate-50 border border-red-100 rounded-full py-2 pl-4 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-red-400"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={!commentText.trim()}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-600 disabled:text-slate-300 hover:text-red-700"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-              </button>
-            </form>
           </div>
+        ))}
+
+        <div className="flex items-start space-x-2 pt-2">
+          <img src="https://picsum.photos/seed/me/150/150" alt="Current User" className="w-8 h-8 rounded-full object-cover" />
+          <form onSubmit={handleSubmitComment} className="flex-1 relative">
+            <input
+              type="text"
+              placeholder="Escreva um comentário..."
+              className="w-full bg-slate-50 border border-red-100 rounded-full py-2 pl-4 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-red-400"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={!commentText.trim()}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-600 disabled:text-slate-300 hover:text-red-700"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </form>
         </div>
-      )}
+      </div>
     </div>
   );
 };
