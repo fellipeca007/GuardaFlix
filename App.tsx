@@ -409,7 +409,7 @@ const App: React.FC = () => {
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500 transition-all outline-none"
+              className="block w-full pl-10 pr-3 py-3 border border-slate-700 rounded-xl bg-slate-800 text-white placeholder-slate-400 focus:bg-slate-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
               placeholder="Buscar pessoas..."
               value={friendSearchQuery}
               onChange={(e) => setFriendSearchQuery(e.target.value)}
@@ -420,12 +420,12 @@ const App: React.FC = () => {
           {searchResults.length > 0 ? (
             <div className="grid grid-cols-1 gap-4">
               {searchResults.map(user => (
-                <div key={user.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl shadow-sm">
+                <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-xl shadow-sm">
                   <div className="flex items-center space-x-3">
                     <img src={user.avatar} className="w-12 h-12 rounded-full object-cover" />
                     <div>
-                      <div className="font-bold text-slate-900">{user.name}</div>
-                      <div className="text-sm text-slate-500">{user.handle}</div>
+                      <div className="font-bold text-white">{user.name}</div>
+                      <div className="text-sm text-slate-400">{user.handle}</div>
                     </div>
                   </div>
                   <div>
@@ -441,7 +441,7 @@ const App: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="text-slate-500 text-center py-8">
+            <div className="text-slate-400 text-center py-8">
               {friendSearchQuery ? "Nenhum usuário encontrado." : "Busque por nome ou @usuario"}
             </div>
           )}

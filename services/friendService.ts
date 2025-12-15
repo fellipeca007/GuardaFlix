@@ -157,11 +157,12 @@ export const FriendService = {
     },
 
     async getSuggestions(currentUserId: string) {
+        // Get all users except current user
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .neq('id', currentUserId)
-            .limit(20);
+            .limit(100); // Increased limit to show more users
 
         if (error) {
             console.error('Error getting suggestions:', error);
@@ -176,9 +177,9 @@ export const FriendService = {
 
         const followedIds = new Set(myRelationships?.map(r => r.following_id) || []);
 
+        // Return all users that are not already friends (no slice limit)
         const suggestions = data
             .filter((profile: any) => !followedIds.has(profile.id))
-            .slice(0, 5)
             .map((profile: any) => ({
                 id: profile.id,
                 name: profile.display_name || 'Usuário',
