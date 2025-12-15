@@ -743,38 +743,179 @@ const App: React.FC = () => {
       )}
 
       {view === ViewState.SETTINGS && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-100">
-          <h2 className="text-xl font-bold mb-6">Editar Perfil</h2>
+        <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-slate-700/50 overflow-hidden">
+          {/* Futuristic Background Effects */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
-              <input type="text" value={settingsForm.name} onChange={e => setSettingsForm({ ...settingsForm, name: e.target.value })} className="w-full p-2 border rounded-lg" />
+          <div className="relative p-6 backdrop-blur-sm">
+            {/* Header */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent mb-2">
+                Editar Perfil
+              </h2>
+              <p className="text-slate-400 text-sm">Personalize suas informações</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Handle</label>
-              <input type="text" value={settingsForm.handle} onChange={handleUsernameChange} className="w-full p-2 border rounded-lg" />
-              {handleError && <p className="text-red-500 text-xs">{handleError}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Bio</label>
-              <textarea value={settingsForm.bio} onChange={e => setSettingsForm({ ...settingsForm, bio: e.target.value })} className="w-full p-2 border rounded-lg" rows={3} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Avatar</label>
-              <input type="file" onChange={e => handleImageUpload(e, 'avatar')} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Capa</label>
-              <input type="file" onChange={e => handleImageUpload(e, 'coverImage')} />
-            </div>
-          </div>
 
-          <div className="mt-6 flex justify-between items-center">
-            <button onClick={signOut} className="text-red-600 font-medium hover:underline">Sair da conta</button>
-            <div className="flex items-center space-x-4">
-              {saveMessage && <span className="text-green-600 text-sm">{saveMessage}</span>}
-              <button onClick={handleSaveSettings} className="bg-black text-white px-6 py-2 rounded-lg font-bold hover:bg-gray-800">Salvar</button>
+            <div className="space-y-6">
+              {/* Avatar Preview */}
+              {settingsForm.avatar && (
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-md opacity-50 animate-pulse"></div>
+                    <img
+                      src={settingsForm.avatar}
+                      alt="Preview"
+                      className="relative w-24 h-24 rounded-full object-cover border-4 border-slate-600 shadow-xl"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Nome */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Nome
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.name}
+                  onChange={e => setSettingsForm({ ...settingsForm, name: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm"
+                  placeholder="Seu nome completo"
+                />
+              </div>
+
+              {/* Handle */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                    Nome de usuário
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.handle}
+                  onChange={handleUsernameChange}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all backdrop-blur-sm"
+                  placeholder="@seuusuario"
+                />
+                {handleError && <p className="text-red-400 text-xs flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {handleError}
+                </p>}
+              </div>
+
+              {/* Bio */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                    Biografia
+                  </span>
+                </label>
+                <textarea
+                  value={settingsForm.bio}
+                  onChange={e => setSettingsForm({ ...settingsForm, bio: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all backdrop-blur-sm resize-none"
+                  rows={4}
+                  placeholder="Conte um pouco sobre você..."
+                />
+              </div>
+
+              {/* Avatar Upload */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Foto de Perfil
+                  </span>
+                </label>
+                <label className="flex items-center justify-center w-full px-4 py-3 bg-slate-800/50 border-2 border-dashed border-slate-600/50 rounded-xl cursor-pointer hover:border-cyan-500/50 hover:bg-slate-700/50 transition-all group">
+                  <div className="flex items-center gap-2 text-slate-400 group-hover:text-cyan-400 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span className="text-sm">Escolher imagem</span>
+                  </div>
+                  <input type="file" className="hidden" onChange={e => handleImageUpload(e, 'avatar')} accept="image/*" />
+                </label>
+              </div>
+
+              {/* Cover Image Upload */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Imagem de Capa
+                  </span>
+                </label>
+                <label className="flex items-center justify-center w-full px-4 py-3 bg-slate-800/50 border-2 border-dashed border-slate-600/50 rounded-xl cursor-pointer hover:border-indigo-500/50 hover:bg-slate-700/50 transition-all group">
+                  <div className="flex items-center gap-2 text-slate-400 group-hover:text-indigo-400 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span className="text-sm">Escolher imagem</span>
+                  </div>
+                  <input type="file" className="hidden" onChange={e => handleImageUpload(e, 'coverImage')} accept="image/*" />
+                </label>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <button
+                onClick={signOut}
+                className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600/20 to-pink-600/20 border border-red-500/50 rounded-xl text-red-400 font-medium hover:from-red-600 hover:to-pink-600 hover:text-white transition-all hover:scale-105 shadow-lg shadow-red-500/10 hover:shadow-red-500/30"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sair da conta
+              </button>
+
+              <div className="flex items-center gap-4">
+                {saveMessage && (
+                  <span className={`text-sm font-medium flex items-center gap-2 ${saveMessage === 'Salvo!' ? 'text-green-400' :
+                      saveMessage === 'Erro' ? 'text-red-400' :
+                        'text-blue-400'
+                    }`}>
+                    {saveMessage === 'Salvo!' && (
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    {saveMessage}
+                  </span>
+                )}
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={!!handleError}
+                  className="group flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-bold hover:from-blue-500 hover:to-purple-500 transition-all hover:scale-105 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Salvar Alterações
+                </button>
+              </div>
             </div>
           </div>
         </div>
