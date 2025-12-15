@@ -4,13 +4,14 @@ import { Post, Comment } from '../types';
 interface PostCardProps {
   post: Post;
   currentUserId?: string; // New: to check ownership
+  currentUserAvatar?: string; // Avatar do usuário atual
   onLike: (postId: string) => void;
   onAddComment: (postId: string, content: string) => void;
   onSave?: (postId: string) => void;
   onDelete?: (postId: string) => void; // New: delete callback
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onLike, onAddComment, onSave, onDelete }) => {
+export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, currentUserAvatar, onLike, onAddComment, onSave, onDelete }) => {
   const [commentText, setCommentText] = useState('');
   const [showMenu, setShowMenu] = useState(false);
 
@@ -162,7 +163,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onLike,
         ))}
 
         <div className="flex items-start space-x-2 pt-2">
-          <img src="https://picsum.photos/seed/me/150/150" alt="Current User" className="w-8 h-8 rounded-full object-cover" />
+          <img src={currentUserAvatar || 'https://picsum.photos/seed/me/150/150'} alt="Current User" className="w-8 h-8 rounded-full object-cover" />
           <form onSubmit={handleSubmitComment} className="flex-1 relative">
             <input
               type="text"

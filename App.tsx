@@ -380,6 +380,7 @@ const App: React.FC = () => {
                     key={post.id}
                     post={post}
                     currentUserId={currentUser?.id}
+                    currentUserAvatar={currentUser?.avatar}
                     onLike={handleLike}
                     onAddComment={handleAddComment}
                     onDelete={handleDeletePost}
@@ -578,14 +579,14 @@ const App: React.FC = () => {
                 </svg>
               </button>
             </div>
-            <div className="flex items-start gap-6 mb-6">
-              {/* Avatar with Repositioning - Futuristic */}
+            <div className="flex flex-col items-center gap-6 mb-6">
+              {/* Avatar with Repositioning - Futuristic - Large & Centered */}
               <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-md opacity-50 animate-pulse"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-lg opacity-60 animate-pulse"></div>
                 <div
-                  className={`relative w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 bg-slate-800 ${isRepositioning
+                  className={`relative w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 bg-slate-800 ${isRepositioning
                     ? 'cursor-move ring-4 ring-blue-500 shadow-2xl shadow-blue-500/50'
-                    : 'border-slate-600 shadow-xl shadow-purple-500/20'
+                    : 'border-slate-600 shadow-2xl shadow-purple-500/30'
                     } transition-all`}
                   onMouseDown={handleCoverMouseDown}
                   onMouseMove={handleCoverMouseMove}
@@ -602,7 +603,7 @@ const App: React.FC = () => {
 
                 {/* Reposition Controls */}
                 {isRepositioning && (
-                  <div className="absolute -bottom-14 left-0 right-0 flex gap-2 justify-center">
+                  <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 justify-center whitespace-nowrap">
                     <button
                       onClick={saveReposition}
                       className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70 hover:scale-105 transition-all"
@@ -620,7 +621,7 @@ const App: React.FC = () => {
                 {!isRepositioning && (
                   <button
                     onClick={startReposition}
-                    className="absolute bottom-0 right-0 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-2 rounded-full transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110"
+                    className="absolute bottom-2 right-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-2.5 rounded-full transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110"
                     title="Reposicionar foto"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
