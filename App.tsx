@@ -548,64 +548,139 @@ const App: React.FC = () => {
       )}
 
       {view === ViewState.PROFILE && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div
-            className={`h-64 relative bg-slate-200 ${isRepositioning ? 'cursor-move' : ''}`}
-            onMouseDown={handleCoverMouseDown}
-            onMouseMove={handleCoverMouseMove}
-            onMouseUp={handleCoverMouseUp}
-            onMouseLeave={handleCoverMouseUp}
-          >
-            {currentUser.coverImage && (
-              <img src={currentUser.coverImage} className="w-full h-full object-cover pointer-events-none" style={{ objectPosition: isRepositioning ? tempCoverPosition : (currentUser.coverPosition || '50% 50%') }} />
-            )}
-            {isRepositioning && (
-              <div className="absolute top-4 right-4 space-x-2">
-                <button onClick={saveReposition} className="bg-white text-black px-4 py-2 rounded-full text-sm font-bold shadow-lg">Salvar</button>
-                <button onClick={cancelReposition} className="bg-black/50 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur-md">Cancelar</button>
+        <div className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 overflow-hidden">
+          {/* Profile Header - Instagram Style */}
+          <div className="p-6">
+            <div className="flex items-start gap-6 mb-6">
+              {/* Avatar with Repositioning */}
+              <div className="relative flex-shrink-0">
+                <div
+                  className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-800 ${isRepositioning ? 'cursor-move ring-4 ring-blue-500' : ''}`}
+                  onMouseDown={handleCoverMouseDown}
+                  onMouseMove={handleCoverMouseMove}
+                  onMouseUp={handleCoverMouseUp}
+                  onMouseLeave={handleCoverMouseUp}
+                >
+                  <img
+                    src={currentUser.avatar}
+                    className="w-full h-full object-cover pointer-events-none"
+                    style={{ objectPosition: isRepositioning ? tempCoverPosition : (currentUser.coverPosition || '50% 50%') }}
+                    alt={currentUser.name}
+                  />
+                </div>
+
+                {/* Reposition Controls */}
+                {isRepositioning && (
+                  <div className="absolute -bottom-12 left-0 right-0 flex gap-2 justify-center">
+                    <button
+                      onClick={saveReposition}
+                      className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-lg hover:bg-blue-700"
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      onClick={cancelReposition}
+                      className="bg-slate-700 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-slate-600"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+                {!isRepositioning && (
+                  <button
+                    onClick={startReposition}
+                    className="absolute bottom-0 right-0 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-full transition-colors shadow-lg"
+                    title="Reposicionar foto"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                  </button>
+                )}
               </div>
-            )}
-            {!isRepositioning && (
-              <button onClick={startReposition} className="absolute top-4 right-4 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full backdrop-blur-md transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-              </button>
-            )}
+
+              {/* Stats - Desktop */}
+              <div className="hidden sm:flex flex-1 justify-around items-center">
+                <div className="text-center">
+                  <span className="font-bold text-white text-xl block">{posts.filter(p => p.user.id === currentUser.id).length}</span>
+                  <span className="text-sm text-slate-400">publicações</span>
+                </div>
+                <div className="text-center">
+                  <span className="font-bold text-white text-xl block">{followersCount}</span>
+                  <span className="text-sm text-slate-400">seguidores</span>
+                </div>
+                <div className="text-center">
+                  <span className="font-bold text-white text-xl block">{friends.length}</span>
+                  <span className="text-sm text-slate-400">seguindo</span>
+                </div>
+              </div>
+            </div>
+
+            {/* User Info */}
+            <div className="space-y-1">
+              <h1 className="text-lg font-bold text-white">{currentUser.name}</h1>
+              <p className="text-sm text-slate-400">{currentUser.handle}</p>
+              {currentUser.bio && (
+                <p className="text-sm text-slate-300 mt-2 whitespace-pre-wrap">{currentUser.bio}</p>
+              )}
+            </div>
+
+            {/* Stats - Mobile */}
+            <div className="flex sm:hidden justify-around mt-6 pt-6 border-t border-slate-800">
+              <div className="text-center">
+                <span className="font-bold text-white block">{posts.filter(p => p.user.id === currentUser.id).length}</span>
+                <span className="text-xs text-slate-400">publicações</span>
+              </div>
+              <div className="text-center">
+                <span className="font-bold text-white block">{followersCount}</span>
+                <span className="text-xs text-slate-400">seguidores</span>
+              </div>
+              <div className="text-center">
+                <span className="font-bold text-white block">{friends.length}</span>
+                <span className="text-xs text-slate-400">seguindo</span>
+              </div>
+            </div>
           </div>
 
-          <div className="px-6 pb-6">
-            <div className="relative -mt-16 mb-4 flex justify-between items-end">
-              <img src={currentUser.avatar} className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-white object-cover" />
-            </div>
-
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">{currentUser.name}</h1>
-              <p className="text-slate-500 font-medium">{currentUser.handle}</p>
-              <p className="mt-2 text-slate-700">{currentUser.bio || "Sem biografia."}</p>
-            </div>
-
-            <div className="flex space-x-6 mt-6 border-t border-slate-100 pt-4">
-              <div className="text-center"><span className="font-bold text-slate-900 block">{posts.filter(p => p.user.id === currentUser.id).length}</span><span className="text-xs text-slate-500 uppercase">Posts</span></div>
-              <div className="text-center"><span className="font-bold text-slate-900 block">{followersCount}</span><span className="text-xs text-slate-500 uppercase">Seguidores</span></div>
-              <div className="text-center"><span className="font-bold text-slate-900 block">{friends.length}</span><span className="text-xs text-slate-500 uppercase">Seguindo</span></div>
-            </div>
-          </div>
-
-          {/* My Posts or Private Warning */}
-          <div className="px-2 pb-8">
+          {/* Posts Grid */}
+          <div className="border-t border-slate-800">
             <div className="grid grid-cols-3 gap-1">
               {posts
                 .filter(p => p.user.id === currentUser.id)
                 .map(post => (
-                  <div key={post.id} className="aspect-square bg-slate-100 relative group overflow-hidden cursor-pointer">
+                  <div key={post.id} className="aspect-square bg-slate-800 relative group overflow-hidden cursor-pointer">
                     {post.image ? (
-                      <img src={post.image} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                      <img src={post.image} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" alt="Post" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center p-4 text-xs text-slate-400 text-center">{post.content.substring(0, 50)}</div>
                     )}
+                    {/* Overlay on hover */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                      <div className="flex items-center gap-1 text-white">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-bold">{post.likes}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-white">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-bold">{post.comments.length}</span>
+                      </div>
+                    </div>
                   </div>
                 ))
               }
             </div>
+            {posts.filter(p => p.user.id === currentUser.id).length === 0 && (
+              <div className="text-center py-16 text-slate-500">
+                <svg className="w-16 h-16 mx-auto mb-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="text-sm">Nenhuma publicação ainda</p>
+              </div>
+            )}
           </div>
         </div>
       )}
