@@ -759,16 +759,57 @@ const App: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-              {/* Avatar Preview */}
+              {/* Avatar Preview with Repositioning */}
               {settingsForm.avatar && (
                 <div className="flex justify-center">
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-md opacity-50 animate-pulse"></div>
-                    <img
-                      src={settingsForm.avatar}
-                      alt="Preview"
-                      className="relative w-24 h-24 rounded-full object-cover border-4 border-slate-600 shadow-xl"
-                    />
+                    <div
+                      className={`relative w-32 h-32 rounded-full overflow-hidden border-4 bg-slate-800 ${isRepositioning
+                        ? 'cursor-move ring-4 ring-blue-500 shadow-2xl shadow-blue-500/50'
+                        : 'border-slate-600 shadow-xl'
+                        } transition-all`}
+                      onMouseDown={handleCoverMouseDown}
+                      onMouseMove={handleCoverMouseMove}
+                      onMouseUp={handleCoverMouseUp}
+                      onMouseLeave={handleCoverMouseUp}
+                    >
+                      <img
+                        src={settingsForm.avatar}
+                        alt="Preview"
+                        className="w-full h-full object-cover pointer-events-none"
+                        style={{ objectPosition: isRepositioning ? tempCoverPosition : (currentUser.coverPosition || '50% 50%') }}
+                      />
+                    </div>
+
+                    {/* Reposition Controls */}
+                    {isRepositioning && (
+                      <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 justify-center whitespace-nowrap">
+                        <button
+                          onClick={saveReposition}
+                          className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70 hover:scale-105 transition-all"
+                        >
+                          ✓ Salvar
+                        </button>
+                        <button
+                          onClick={cancelReposition}
+                          className="bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-600 hover:scale-105 transition-all"
+                        >
+                          ✕ Cancelar
+                        </button>
+                      </div>
+                    )}
+                    {!isRepositioning && (
+                      <button
+                        onClick={startReposition}
+                        className="absolute bottom-2 right-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-2 rounded-full transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110"
+                        title="Reposicionar foto"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -857,65 +898,45 @@ const App: React.FC = () => {
                 </label>
               </div>
 
-              {/* Cover Image Upload */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300">
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Imagem de Capa
-                  </span>
-                </label>
-                <label className="flex items-center justify-center w-full px-4 py-3 bg-slate-800/50 border-2 border-dashed border-slate-600/50 rounded-xl cursor-pointer hover:border-indigo-500/50 hover:bg-slate-700/50 transition-all group">
-                  <div className="flex items-center gap-2 text-slate-400 group-hover:text-indigo-400 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <span className="text-sm">Escolher imagem</span>
-                  </div>
-                  <input type="file" className="hidden" onChange={e => handleImageUpload(e, 'coverImage')} accept="image/*" />
-                </label>
-              </div>
             </div>
+          </div>
 
-            {/* Actions */}
-            <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* Actions */}
+          <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <button
+              onClick={signOut}
+              className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600/20 to-pink-600/20 border border-red-500/50 rounded-xl text-red-400 font-medium hover:from-red-600 hover:to-pink-600 hover:text-white transition-all hover:scale-105 shadow-lg shadow-red-500/10 hover:shadow-red-500/30"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sair da conta
+            </button>
+
+            <div className="flex items-center gap-4">
+              {saveMessage && (
+                <span className={`text-sm font-medium flex items-center gap-2 ${saveMessage === 'Salvo!' ? 'text-green-400' :
+                  saveMessage === 'Erro' ? 'text-red-400' :
+                    'text-blue-400'
+                  }`}>
+                  {saveMessage === 'Salvo!' && (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  {saveMessage}
+                </span>
+              )}
               <button
-                onClick={signOut}
-                className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600/20 to-pink-600/20 border border-red-500/50 rounded-xl text-red-400 font-medium hover:from-red-600 hover:to-pink-600 hover:text-white transition-all hover:scale-105 shadow-lg shadow-red-500/10 hover:shadow-red-500/30"
+                onClick={handleSaveSettings}
+                disabled={!!handleError}
+                className="group flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-bold hover:from-blue-500 hover:to-purple-500 transition-all hover:scale-105 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Sair da conta
+                Salvar Alterações
               </button>
-
-              <div className="flex items-center gap-4">
-                {saveMessage && (
-                  <span className={`text-sm font-medium flex items-center gap-2 ${saveMessage === 'Salvo!' ? 'text-green-400' :
-                      saveMessage === 'Erro' ? 'text-red-400' :
-                        'text-blue-400'
-                    }`}>
-                    {saveMessage === 'Salvo!' && (
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    {saveMessage}
-                  </span>
-                )}
-                <button
-                  onClick={handleSaveSettings}
-                  disabled={!!handleError}
-                  className="group flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-bold hover:from-blue-500 hover:to-purple-500 transition-all hover:scale-105 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Salvar Alterações
-                </button>
-              </div>
             </div>
           </div>
         </div>
