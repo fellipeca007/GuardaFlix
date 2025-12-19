@@ -52,7 +52,7 @@ export const Login: React.FC = () => {
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden z-10">
                 <div className="p-8 text-center border-b border-slate-700/50">
                     <img src="/logo.png" alt="Guardão" className="w-24 h-24 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
-                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Rede Social do Guardão</h1>
+                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">GuardaFlix</h1>
                     <p className="text-blue-300 font-medium">Sempre Pronto, Sempre Alerta</p>
                 </div>
 

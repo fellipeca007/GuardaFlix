@@ -13,7 +13,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, user }) =>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
         {/* Logo */}
         <div className="flex items-center cursor-pointer" onClick={() => setView(ViewState.FEED)}>
-          <img src="/logo.png" alt="Rede Social do Guardão" className="w-10 h-10 rounded-lg shadow-lg transform hover:scale-110 transition-transform" />
+          <img src="/logo.png" alt="GuardaFlix" className="w-10 h-10 rounded-lg shadow-lg transform hover:scale-110 transition-transform" />
+          {/* Mobile Name */}
+          <span className="text-xl font-bold text-blue-600 sm:hidden tracking-tight ml-2">
+            GuardaFlix
+          </span>
+          {/* Desktop Name */}
           <span className="text-2xl font-bold text-blue-600 hidden sm:block tracking-tight ml-2">
             Rede Social do Guardão
           </span>
