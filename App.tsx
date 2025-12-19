@@ -8,7 +8,7 @@ import { PostService } from './services/postService';
 import { Post, User, ViewState, FriendSuggestion, FriendRequest } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { Login } from './pages/Login';
-import { uploadImage } from './services/supabase';
+import { uploadImage, supabase } from './services/supabase';
 
 // Helper to determine privacy access
 // For now, simpler: profiles are public, posts are private
@@ -43,6 +43,11 @@ const App: React.FC = () => {
 
   // Sent Requests State (requests I sent)
   const [sentRequests, setSentRequests] = useState<any[]>([]);
+
+  // Friend Profile State
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
+  const [isFriendWith, setIsFriendWith] = useState(false);
 
   // Validation State
   const [handleError, setHandleError] = useState<string | null>(null);
@@ -170,7 +175,7 @@ const App: React.FC = () => {
   const handleFollow = async (targetUserId: string) => {
     if (!currentUser) return;
 
-    // Optimistic Update for Search Results
+    // Optimistic Update for Search Results AND Suggestions
     setSearchResults(prev => prev.map(u => {
       if (u.id === targetUserId) {
         return { ...u, status: 'pending' };
@@ -178,19 +183,54 @@ const App: React.FC = () => {
       return u;
     }));
 
+    // Optimistic Update for Suggestions - remove from list
+    setSuggestions(prev => prev.filter(u => u.id !== targetUserId));
+
     try {
       await FriendService.followUser(currentUser.id, targetUserId);
       console.log("✅ Solicitação de amizade enviada com sucesso!");
-    } catch (error) {
+      // Reload to ensure consistency
+      loadSentRequests();
+    } catch (error: any) {
       console.error("❌ Erro ao enviar solicitação:", error);
-      alert("Erro ao enviar solicitação de amizade. Tente novamente.");
-      // Revert
+
+      // Mensagens de erro mais específicas
+      let errorMessage = "Erro ao enviar solicitação de amizade. Tente novamente.";
+
+      // Erro de duplicação (chave única violada)
+      if (error?.code === '23505' || error?.message?.includes('duplicate')) {
+        errorMessage = "Você já enviou uma solicitação para esta pessoa.";
+      }
+      // Erro de permissão RLS
+      else if (error?.code === '42501' || error?.message?.includes('permission denied') || error?.message?.includes('policy')) {
+        errorMessage = "Erro de permissão. Verifique se você está autenticado e se as políticas RLS estão configuradas corretamente no Supabase.";
+        console.error("🔒 RLS Policy Error - Verifique as políticas da tabela 'relationships' no Supabase");
+      }
+      // Erro de autenticação
+      else if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
+        errorMessage = "Sessão expirada. Por favor, faça login novamente.";
+      }
+      // Erro de rede
+      else if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
+        errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+      }
+      // Erro de foreign key (usuário não existe)
+      else if (error?.code === '23503') {
+        errorMessage = "Usuário não encontrado. Tente atualizar a página.";
+      }
+
+      alert(errorMessage);
+
+      // Revert optimistic updates
       setSearchResults(prev => prev.map(u => {
         if (u.id === targetUserId) {
           return { ...u, status: 'none' };
         }
         return u;
       }));
+
+      // Reload suggestions to revert
+      loadSuggestions();
     }
   };
 
@@ -240,6 +280,68 @@ const App: React.FC = () => {
       console.error("Error rejecting", error);
     }
   };
+
+  const handleUserClick = async (userId: string) => {
+    if (!currentUser) return;
+
+    // Se clicar no próprio perfil, vai para PROFILE
+    if (userId === currentUser.id) {
+      setView(ViewState.PROFILE);
+      return;
+    }
+
+    // Verificar se são amigos
+    try {
+      const status = await FriendService.checkIsFollowing(currentUser.id, userId);
+
+      if (status === 'accepted') {
+        // São amigos, pode ver o perfil
+        setSelectedFriendId(userId);
+        setIsFriendWith(true);
+        setView(ViewState.FRIEND_PROFILE);
+      } else {
+        // Não são amigos
+        alert('Você precisa ser amigo desta pessoa para ver o perfil completo.');
+      }
+    } catch (error) {
+      console.error("Erro ao verificar amizade:", error);
+      alert('Erro ao verificar status de amizade.');
+    }
+  };
+
+  // Load Friend Profile Data
+  useEffect(() => {
+    const loadFriendProfile = async () => {
+      if (!selectedFriendId || !currentUser) return;
+
+      try {
+        // Buscar dados do usuário
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', selectedFriendId)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setSelectedFriend({
+            id: data.id,
+            name: data.display_name || 'Usuário',
+            avatar: data.avatar_url || 'https://picsum.photos/seed/default/150/150',
+            handle: data.handle || '@usuario',
+            coverImage: data.cover_image_url || 'https://picsum.photos/seed/cover/800/250',
+            bio: data.bio,
+            coverPosition: data.cover_position
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao carregar perfil do amigo:", error);
+      }
+    };
+
+    loadFriendProfile();
+  }, [selectedFriendId, currentUser]);
 
   const handleCreatePost = async (content: string, image?: string, sentiment?: string) => {
     if (!currentUser) return;
@@ -356,7 +458,7 @@ const App: React.FC = () => {
   const handleCoverMouseUp = () => setDragStartY(null);
 
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-white text-red-600 font-bold text-xl">Carregando...</div>;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-white text-blue-600 font-bold text-xl">Carregando...</div>;
   if (!currentUser) return <Login />;
 
   return (
@@ -384,13 +486,14 @@ const App: React.FC = () => {
                     onLike={handleLike}
                     onAddComment={handleAddComment}
                     onDelete={handleDeletePost}
+                    onUserClick={handleUserClick}
                   />
                 ))
               ) : (
                 <div className="text-center py-10 bg-slate-50 rounded-xl">
                   <p className="text-slate-500">Seu feed está vazio.</p>
                   <p className="text-sm text-slate-400 mt-1">Siga mais pessoas para ver publicações!</p>
-                  <button onClick={() => setView(ViewState.FRIENDS)} className="mt-4 text-red-600 font-medium">Encontrar Amigos</button>
+                  <button onClick={() => setView(ViewState.FRIENDS)} className="mt-4 text-blue-600 font-medium">Encontrar Amigos</button>
                 </div>
               )}
             </>
@@ -466,11 +569,7 @@ const App: React.FC = () => {
                       </div>
                     </div>
                     <button
-                      onClick={async () => {
-                        await handleFollow(user.id);
-                        loadSuggestions();
-                        loadSentRequests();
-                      }}
+                      onClick={() => handleFollow(user.id)}
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                     >
                       Adicionar
@@ -580,7 +679,7 @@ const App: React.FC = () => {
                   </button>
                   <button
                     onClick={signOut}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white transition-all hover:scale-105 shadow-lg shadow-red-500/30"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all hover:scale-105 shadow-lg shadow-blue-500/30"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -599,8 +698,8 @@ const App: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-lg opacity-60 animate-pulse"></div>
                   <div
                     className={`relative w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 bg-slate-800 ${isRepositioning
-                        ? 'cursor-move ring-4 ring-blue-500 shadow-2xl shadow-blue-500/50'
-                        : 'border-slate-600 shadow-2xl shadow-purple-500/30'
+                      ? 'cursor-move ring-4 ring-blue-500 shadow-2xl shadow-blue-500/50'
+                      : 'border-slate-600 shadow-2xl shadow-purple-500/30'
                       } transition-all`}
                     onMouseDown={handleCoverMouseDown}
                     onMouseMove={handleCoverMouseMove}
@@ -906,7 +1005,7 @@ const App: React.FC = () => {
           <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row justify-between items-center gap-4">
             <button
               onClick={signOut}
-              className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600/20 to-pink-600/20 border border-red-500/50 rounded-xl text-red-400 font-medium hover:from-red-600 hover:to-pink-600 hover:text-white transition-all hover:scale-105 shadow-lg shadow-red-500/10 hover:shadow-red-500/30"
+              className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-blue-500/50 rounded-xl text-blue-400 font-medium hover:from-blue-600 hover:to-indigo-600 hover:text-white transition-all hover:scale-105 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/30"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

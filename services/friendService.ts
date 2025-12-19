@@ -75,15 +75,33 @@ export const FriendService = {
 
     async followUser(currentUserId: string, targetUserId: string) {
         // Create request with 'pending' status
-        const { error } = await supabase
+        console.log('🔄 Tentando criar relacionamento:', {
+            follower_id: currentUserId,
+            following_id: targetUserId,
+            status: 'pending'
+        });
+
+        const { data, error } = await supabase
             .from('relationships')
             .insert({
                 follower_id: currentUserId,
                 following_id: targetUserId,
                 status: 'pending'
-            });
+            })
+            .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Erro detalhado em followUser:', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint,
+                fullError: error
+            });
+            throw error;
+        }
+
+        console.log('✅ Relacionamento criado com sucesso:', data);
     },
 
     async unfollowUser(currentUserId: string, targetUserId: string) {
@@ -100,7 +118,7 @@ export const FriendService = {
             .from('relationships')
             .select('status')
             .match({ follower_id: currentUserId, following_id: targetUserId })
-            .single();
+            .maybeSingle();
 
         if (error || !data) return 'none';
         return data.status || 'none';

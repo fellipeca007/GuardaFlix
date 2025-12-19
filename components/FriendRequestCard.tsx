@@ -14,13 +14,13 @@ export const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ request, o
                 <img src={request.avatar} alt={request.name} className="w-12 h-12 rounded-full object-cover" />
                 <div>
                     <h4 className="font-bold text-slate-800 text-sm">{request.name}</h4>
-                    <p className="text-red-500 text-xs">{request.handle}</p>
+                    <p className="text-blue-500 text-xs">{request.handle}</p>
                 </div>
             </div>
             <div className="flex space-x-2">
                 <button
                     onClick={() => onAccept(request.id)}
-                    className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"
+                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
                 >
                     Aceitar
                 </button>

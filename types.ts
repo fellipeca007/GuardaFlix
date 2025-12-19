@@ -36,11 +36,13 @@ export interface Post {
   comments: Comment[];
   timestamp: string;
   isLiked: boolean; // Local state for the current user
+  isSaved?: boolean; // Local state for saved posts
 }
 
 export enum ViewState {
   FEED = 'FEED',
   PROFILE = 'PROFILE',
+  FRIEND_PROFILE = 'FRIEND_PROFILE',
   SETTINGS = 'SETTINGS',
   FRIENDS = 'FRIENDS',
   SAVED = 'SAVED',

@@ -7,7 +7,7 @@ export const generateInitialPosts = async (): Promise<Post[]> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: "Generate 5 realistic, modern social media posts for a community called 'GuardaFlix'. Topics: security, community, daily life, technology, and general positive vibes. Do not focus only on movies unless relevant. Include a mix of short and medium length text.",
+      contents: "Generate 5 realistic, modern social media posts for a community called 'Rede Social do Guardão'. Topics: public safety, community service, daily life of a law enforcement officer, technology, and general positive community vibes. Use a friendly but professional tone. Include a mix of short and medium length text.",
       config: {
         responseMimeType: "application/json",
         responseSchema: {

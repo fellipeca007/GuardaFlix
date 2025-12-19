@@ -54,11 +54,11 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreate, user }) =>
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim() && !imagePreview && !selectedMood) return;
-    
+
     const sentimentString = selectedMood ? `${selectedMood.label} ${selectedMood.emoji}` : undefined;
-    
+
     onPostCreate(content, imagePreview || undefined, sentimentString);
-    
+
     // Reset form
     setContent('');
     setImagePreview(null);
@@ -67,22 +67,22 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreate, user }) =>
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-red-50 p-4 mb-6 relative">
+    <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-4 mb-6 relative">
       <div className="flex items-start space-x-3 sm:space-x-4">
-        <img 
-          src={user.avatar} 
+        <img
+          src={user.avatar}
           alt={user.name}
-          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-red-100 flex-shrink-0" 
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-blue-100 flex-shrink-0"
         />
         <form className="flex-1 min-w-0" onSubmit={handleSubmit}>
-          
+
           {selectedMood && (
             <div className="mb-2 inline-flex items-center bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-sm border border-yellow-100 animate-fade-in">
               <span className="mr-2">Está se sentindo <strong>{selectedMood.label}</strong> {selectedMood.emoji}</span>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setSelectedMood(null)}
-                className="hover:text-red-500 focus:outline-none"
+                className="hover:text-blue-500 focus:outline-none"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -92,17 +92,17 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreate, user }) =>
           )}
 
           <textarea
-            className="w-full bg-slate-50 border-none rounded-xl p-3 focus:ring-2 focus:ring-red-200 focus:bg-white transition-all text-slate-700 placeholder-slate-400 resize-none text-sm sm:text-base"
+            className="w-full bg-slate-50 border-none rounded-xl p-3 focus:ring-2 focus:ring-blue-200 focus:bg-white transition-all text-slate-700 placeholder-slate-400 resize-none text-sm sm:text-base"
             placeholder={`No que você está pensando, ${user.name.split(' ')[0]}?`}
             rows={2}
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
-          
+
           {imagePreview && (
             <div className="relative mt-2">
               <img src={imagePreview} alt="Preview" className="w-full max-h-60 object-cover rounded-xl" />
-              <button 
+              <button
                 type="button"
                 onClick={() => setImagePreview(null)}
                 className="absolute top-2 right-2 bg-gray-900/50 text-white rounded-full p-1 hover:bg-gray-900/70"
@@ -116,17 +116,17 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreate, user }) =>
 
           <div className="flex flex-wrap items-center justify-between mt-3 pt-3 border-t border-slate-100 gap-2 relative">
             <div className="flex items-center space-x-2">
-              <label className="cursor-pointer flex items-center space-x-1 sm:space-x-2 text-slate-500 hover:text-green-600 hover:bg-green-50 px-2 sm:px-3 py-2 rounded-full transition-all duration-200 group">
-                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 group-hover:scale-110 transition-transform">
-                   <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clipRule="evenodd" />
-                 </svg>
-                 <span className="text-xs sm:text-sm font-medium">Foto</span>
-                 <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+              <label className="cursor-pointer flex items-center space-x-1 sm:space-x-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 px-2 sm:px-3 py-2 rounded-full transition-all duration-200 group">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500 group-hover:scale-110 transition-transform">
+                  <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clipRule="evenodd" />
+                </svg>
+                <span className="text-xs sm:text-sm font-medium">Foto</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
               </label>
-              
+
               <div className="relative" ref={moodPickerRef}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowMoodPicker(!showMoodPicker)}
                   className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-full transition-all duration-200 group ${showMoodPicker || selectedMood ? 'text-yellow-600 bg-yellow-50' : 'text-slate-500 hover:text-yellow-600 hover:bg-yellow-50'}`}
                 >
@@ -137,7 +137,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreate, user }) =>
                 </button>
 
                 {showMoodPicker && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-red-50 z-50 p-2 grid grid-cols-2 gap-1 animate-fade-in-up">
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-blue-50 z-50 p-2 grid grid-cols-2 gap-1 animate-fade-in-up">
                     {MOODS.map((mood) => (
                       <button
                         key={mood.label}
@@ -146,7 +146,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreate, user }) =>
                           setSelectedMood(mood);
                           setShowMoodPicker(false);
                         }}
-                        className="flex items-center space-x-2 px-3 py-2 hover:bg-red-50 rounded-lg transition-colors text-left"
+                        className="flex items-center space-x-2 px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors text-left"
                       >
                         <span className="text-xl">{mood.emoji}</span>
                         <span className="text-sm text-slate-700">{mood.label}</span>
@@ -156,11 +156,11 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreate, user }) =>
                 )}
               </div>
             </div>
-            
-            <button 
-              type="submit" 
+
+            <button
+              type="submit"
               disabled={!content.trim() && !imagePreview && !selectedMood}
-              className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-full font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-red-200 text-sm sm:text-base ml-auto sm:ml-0"
+              className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-full font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 text-sm sm:text-base ml-auto sm:ml-0"
             >
               Publicar
             </button>
