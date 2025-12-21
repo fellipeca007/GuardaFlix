@@ -63,11 +63,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentView, setView, onCr
   }
 
   const menuItems = [
-    { id: ViewState.FEED, label: 'Home' },
-    { id: ViewState.FRIENDS, label: 'Amigos' },
+    { id: ViewState.FEED, label: 'Base' },
+    { id: ViewState.FRIENDS, label: 'Aliados' },
     { id: 'CREATE_POST', label: '' }, // Placeholder for create button
-    { id: ViewState.NOTIFICATIONS, label: 'Alertas' },
-    { id: ViewState.PROFILE, label: 'Perfil' },
+    { id: ViewState.NOTIFICATIONS, label: 'Rádio' },
+    { id: ViewState.PROFILE, label: 'Bio' },
   ];
 
   return (

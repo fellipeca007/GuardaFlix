@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
                         <div className="flex items-center cursor-pointer mb-8 gap-3" onClick={() => setView(ViewState.FEED)}>
                             <img src="/logo.png" alt="Logo" className="w-8 h-8 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
                             <div className="text-xl font-bold text-white tracking-wide">
-                                Guarda<span className="text-blue-500">Flix</span>
+                                Guardão<span className="text-blue-500">Flix</span>
                             </div>
                         </div>
                         <Sidebar currentView={currentView} setView={setView} />
@@ -37,7 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
 
                 {/* Main Content Area */}
                 <main className="flex-1 w-full lg:ml-64 xl:ml-72 min-h-screen">
-                    <div className="max-w-xl mx-auto pt-4 lg:pt-8 px-4">
+                    <div className="max-w-4xl mx-auto pt-4 lg:pt-8 px-4">
                         {children}
                     </div>
                 </main>

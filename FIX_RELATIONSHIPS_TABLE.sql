@@ -93,7 +93,10 @@ CREATE POLICY "Users can delete their own relationships"
 ON relationships
 FOR DELETE
 TO authenticated
-USING (auth.uid() = follower_id);
+USING (
+  auth.uid() = follower_id OR 
+  auth.uid() = following_id
+);
 
 CREATE POLICY "Users can update relationships they received"
 ON relationships

@@ -86,11 +86,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
   }
 
   const menuItems = [
-    { id: ViewState.FEED, label: 'Página Inicial' },
-    { id: ViewState.NOTIFICATIONS, label: 'Notificações' },
-    { id: ViewState.FRIENDS, label: 'Explorar' },
-    { id: ViewState.PROFILE, label: 'Perfil' },
-    { id: ViewState.SETTINGS, label: 'Mais' },
+    { id: ViewState.FEED, label: 'Base de Operações' },
+    { id: ViewState.NOTIFICATIONS, label: 'Alertas de Rádio' },
+    { id: ViewState.FRIENDS, label: 'Aliados & Recrutas' },
+    { id: ViewState.PROFILE, label: 'Identidade Funcional' },
+    { id: ViewState.SETTINGS, label: 'Painel de Controle' },
   ];
 
   return (
@@ -121,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
       {/* Footer / Meta */}
       <div className="mt-8 px-3 border-t border-slate-800 pt-6">
         <p className="text-xs text-slate-600 font-medium">
-          © 2025 Guarda Social<br />
+          © 2025 Guardão Social<br />
           <span className="opacity-75">Segurança & Tecnologia</span>
         </p>
       </div>

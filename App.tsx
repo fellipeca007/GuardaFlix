@@ -10,10 +10,6 @@ import { useAuth } from './contexts/AuthContext';
 import { Login } from './pages/Login';
 import { uploadImage, supabase } from './services/supabase';
 
-// Helper to determine privacy access
-// For now, simpler: profiles are public, posts are private
-const isFriend = (userStatus: string) => userStatus === 'accepted';
-
 const App: React.FC = () => {
   const { user: authUser, loading: authLoading, signOut, updateProfile } = useAuth();
 
@@ -26,33 +22,21 @@ const App: React.FC = () => {
   // Friends & Requests State
   const [friends, setFriends] = useState<any[]>([]);
   const [followersCount, setFollowersCount] = useState<number>(0);
+  const [followers, setFollowers] = useState<any[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
-
-  const [friendSearchQuery, setFriendSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-
-  // Saved Posts State
-  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
-
-  // Suggestions State
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([]);
-
-  // Friends Tab State
-  const [friendsTab, setFriendsTab] = useState<'suggestions' | 'received' | 'sent'>('suggestions');
-
-  // Sent Requests State (requests I sent)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [friendsTab, setFriendsTab] = useState<'suggestions' | 'received' | 'sent' | 'followers' | 'following'>('suggestions');
+  const [profileViewTab, setProfileViewTab] = useState<'posts' | 'followers' | 'friends'>('posts');
   const [sentRequests, setSentRequests] = useState<any[]>([]);
 
   // Friend Profile State
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
-  const [isFriendWith, setIsFriendWith] = useState(false);
 
-  // Validation State
+  // Settings State
   const [handleError, setHandleError] = useState<string | null>(null);
-
-  // Updated for Dark Theme
   const [settingsForm, setSettingsForm] = useState({
     name: '',
     handle: '',
@@ -95,7 +79,6 @@ const App: React.FC = () => {
       loadFeed();
       loadFriends();
       loadSuggestions();
-      loadSavedPosts();
       loadFriendRequests();
       loadSentRequests();
     }
@@ -104,170 +87,91 @@ const App: React.FC = () => {
   const loadFeed = async () => {
     if (!currentUser) return;
     setLoading(true);
-    const realPosts = await PostService.getFeedPosts(currentUser.id);
-    setPosts(realPosts);
+    try {
+      const realPosts = await PostService.getFeedPosts(currentUser.id);
+      setPosts(realPosts);
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   const loadFriends = async () => {
     if (!currentUser) return;
-    const myFriends = await FriendService.getFriends(currentUser.id);
-    setFriends(myFriends);
-    const count = await FriendService.getFollowersCount(currentUser.id);
-    setFollowersCount(count);
+    try {
+      const myFriends = await FriendService.getFriends(currentUser.id);
+      setFriends(myFriends);
+      const myFollowers = await FriendService.getFollowers(currentUser.id);
+      setFollowers(myFollowers);
+      setFollowersCount(myFollowers.length);
+    } catch (e) { console.error(e); }
   };
 
   const loadFriendRequests = async () => {
     if (!currentUser) return;
     setRequestsLoading(true);
-    const reqs = await FriendService.getPendingRequests(currentUser.id);
-    setFriendRequests(reqs);
+    try {
+      const reqs = await FriendService.getPendingRequests(currentUser.id);
+      setFriendRequests(reqs);
+    } catch (e) { console.error(e); }
     setRequestsLoading(false);
   };
 
   const loadSentRequests = async () => {
     if (!currentUser) return;
-    // Get requests I sent that are still pending
-    const allUsers = await FriendService.searchUsers('', currentUser.id);
-    const enriched = await Promise.all((allUsers || []).map(async (u: any) => {
-      const status = await FriendService.checkIsFollowing(currentUser.id, u.id);
-      return { ...u, status };
-    }));
-    setSentRequests(enriched.filter(u => u.status === 'pending'));
+    try {
+      const allUsers = await FriendService.searchUsers('', currentUser.id);
+      const enriched = await Promise.all((allUsers || []).map(async (u: any) => {
+        const status = await FriendService.checkIsFollowing(currentUser.id, u.id);
+        return { ...u, status };
+      }));
+      setSentRequests(enriched.filter(u => u.status === 'pending'));
+    } catch (e) { console.error(e); }
   };
 
   const loadSuggestions = async () => {
     if (!currentUser) return;
-    const mySuggestions = await FriendService.getSuggestions(currentUser.id);
-    setSuggestions(mySuggestions);
+    setSuggestionsLoading(true);
+    try {
+      const mySuggestions = await FriendService.getSuggestions(currentUser.id);
+      setSuggestions(mySuggestions);
+    } catch (e) { console.error(e); }
+    setSuggestionsLoading(false);
   };
 
-  const loadSavedPosts = async () => {
-    if (!currentUser) return;
-    const saved = await PostService.getSavedPosts(currentUser.id);
-    setSavedPosts(saved);
-  };
-
-  // Search
-  useEffect(() => {
-    const doSearch = async () => {
-      if (!currentUser) return;
-      if (friendSearchQuery.trim().length > 0) {
-        const results = await FriendService.searchUsers(friendSearchQuery, currentUser.id);
-
-        // Enrich results with status
-        const enriched = await Promise.all(results.map(async (u: any) => {
-          const status = await FriendService.checkIsFollowing(currentUser.id, u.id);
-          return { ...u, status };
-        }));
-
-        setSearchResults(enriched);
-      } else {
-        setSearchResults([]);
-      }
-    };
-    const debounce = setTimeout(doSearch, 500);
-    return () => clearTimeout(debounce);
-  }, [friendSearchQuery, currentUser]);
-
-
-  // Actions
   const handleFollow = async (targetUserId: string) => {
     if (!currentUser) return;
-
-    // Optimistic Update for Search Results AND Suggestions
-    setSearchResults(prev => prev.map(u => {
-      if (u.id === targetUserId) {
-        return { ...u, status: 'pending' };
-      }
-      return u;
-    }));
-
-    // Optimistic Update for Suggestions - remove from list
     setSuggestions(prev => prev.filter(u => u.id !== targetUserId));
-
     try {
       await FriendService.followUser(currentUser.id, targetUserId);
-      console.log("✅ Solicitação de amizade enviada com sucesso!");
-      // Reload to ensure consistency
       loadSentRequests();
-    } catch (error: any) {
-      console.error("❌ Erro ao enviar solicitação:", error);
-
-      // Mensagens de erro mais específicas
-      let errorMessage = "Erro ao enviar solicitação de amizade. Tente novamente.";
-
-      // Erro de duplicação (chave única violada)
-      if (error?.code === '23505' || error?.message?.includes('duplicate')) {
-        errorMessage = "Você já enviou uma solicitação para esta pessoa.";
-      }
-      // Erro de permissão RLS
-      else if (error?.code === '42501' || error?.message?.includes('permission denied') || error?.message?.includes('policy')) {
-        errorMessage = "Erro de permissão. Verifique se você está autenticado e se as políticas RLS estão configuradas corretamente no Supabase.";
-        console.error("🔒 RLS Policy Error - Verifique as políticas da tabela 'relationships' no Supabase");
-      }
-      // Erro de autenticação
-      else if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
-        errorMessage = "Sessão expirada. Por favor, faça login novamente.";
-      }
-      // Erro de rede
-      else if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
-        errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
-      }
-      // Erro de foreign key (usuário não existe)
-      else if (error?.code === '23503') {
-        errorMessage = "Usuário não encontrado. Tente atualizar a página.";
-      }
-
-      alert(errorMessage);
-
-      // Revert optimistic updates
-      setSearchResults(prev => prev.map(u => {
-        if (u.id === targetUserId) {
-          return { ...u, status: 'none' };
-        }
-        return u;
-      }));
-
-      // Reload suggestions to revert
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao enviar solicitação.");
       loadSuggestions();
     }
   };
 
   const handleUnfollow = async (targetUserId: string) => {
     if (!currentUser) return;
-    if (!window.confirm("Deixar de seguir?")) return;
-
-    setSearchResults(prev => prev.map(u => {
-      if (u.id === targetUserId) return { ...u, status: 'none' };
-      return u;
-    }));
-    setFriends(prev => prev.filter(f => f.id !== targetUserId));
-
+    if (!window.confirm("Deseja interromper o apoio a este guardião?")) return;
     try {
       await FriendService.unfollowUser(currentUser.id, targetUserId);
+      loadFriends();
       loadFeed();
+      loadSentRequests();
+      loadSuggestions();
     } catch (e) { console.error(e); }
   };
 
   const handleAcceptRequest = async (requesterId: string) => {
     if (!currentUser) return;
-
-    // Optimistic
     setFriendRequests(prev => prev.filter(r => r.id !== requesterId));
-    setFollowersCount(c => c + 1);
-
     try {
       await FriendService.acceptRequest(currentUser.id, requesterId);
-      console.log("✅ Solicitação aceita com sucesso!");
-      // Reload friends list to show the new friend
       loadFriends();
-      loadFeed(); // Refresh feed to show new friend's posts
+      loadFeed();
     } catch (error) {
-      console.error("❌ Erro ao aceitar solicitação:", error);
-      alert("Erro ao aceitar solicitação. Tente novamente.");
-      loadFriendRequests(); // Reload to revert
-      setFollowersCount(c => c - 1); // Revert count
+      console.error(error);
+      loadFriendRequests();
     }
   };
 
@@ -276,54 +180,32 @@ const App: React.FC = () => {
     setFriendRequests(prev => prev.filter(r => r.id !== requesterId));
     try {
       await FriendService.rejectRequest(currentUser.id, requesterId);
-    } catch (error) {
-      console.error("Error rejecting", error);
-    }
+    } catch (error) { console.error(error); }
   };
 
   const handleUserClick = async (userId: string) => {
     if (!currentUser) return;
-
-    // Se clicar no próprio perfil, vai para PROFILE
     if (userId === currentUser.id) {
       setView(ViewState.PROFILE);
       return;
     }
-
-    // Verificar se são amigos
     try {
       const status = await FriendService.checkIsFollowing(currentUser.id, userId);
-
       if (status === 'accepted') {
-        // São amigos, pode ver o perfil
         setSelectedFriendId(userId);
-        setIsFriendWith(true);
         setView(ViewState.FRIEND_PROFILE);
       } else {
-        // Não são amigos
-        alert('Você precisa ser amigo desta pessoa para ver o perfil completo.');
+        alert('Você precisa ser aliado deste guardião para ver o perfil completo.');
       }
-    } catch (error) {
-      console.error("Erro ao verificar amizade:", error);
-      alert('Erro ao verificar status de amizade.');
-    }
+    } catch (error) { console.error(error); }
   };
 
-  // Load Friend Profile Data
   useEffect(() => {
     const loadFriendProfile = async () => {
       if (!selectedFriendId || !currentUser) return;
-
       try {
-        // Buscar dados do usuário
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', selectedFriendId)
-          .single();
-
+        const { data, error } = await supabase.from('profiles').select('*').eq('id', selectedFriendId).single();
         if (error) throw error;
-
         if (data) {
           setSelectedFriend({
             id: data.id,
@@ -335,11 +217,8 @@ const App: React.FC = () => {
             coverPosition: data.cover_position
           });
         }
-      } catch (error) {
-        console.error("Erro ao carregar perfil do amigo:", error);
-      }
+      } catch (error) { console.error(error); }
     };
-
     loadFriendProfile();
   }, [selectedFriendId, currentUser]);
 
@@ -348,23 +227,20 @@ const App: React.FC = () => {
     try {
       await PostService.createPost(currentUser.id, content, image, sentiment);
       loadFeed();
-    } catch (error) {
-      console.error("Error creating post", error);
-      alert("Erro ao criar post.");
-    }
+    } catch (error) { console.error(error); alert("Erro ao criar post."); }
   };
 
   const handleLike = async (postId: string) => {
     if (!currentUser) return;
     const post = posts.find(p => p.id === postId);
     if (!post) return;
-    setPosts(posts.map(p => p.id === postId ? { ...p, likes: p.isLiked ? p.likes - 1 : p.likes + 1, isLiked: !p.isLiked } : p));
-    try { await PostService.toggleLike(postId, currentUser.id, post.isLiked); } catch (e) { console.error(e); }
+    const isLiked = post.isLiked;
+    setPosts(posts.map(p => p.id === postId ? { ...p, likes: isLiked ? p.likes - 1 : p.likes + 1, isLiked: !isLiked } : p));
+    try { await PostService.toggleLike(postId, currentUser.id, isLiked); } catch (e) { console.error(e); }
   };
 
   const handleAddComment = async (postId: string, content: string) => {
     if (!currentUser) return;
-    // Optimistic
     const tempId = Date.now().toString();
     setPosts(posts.map(post => {
       if (post.id === postId) {
@@ -380,48 +256,38 @@ const App: React.FC = () => {
 
   const handleDeletePost = async (postId: string) => {
     if (!currentUser) return;
-    // Optimistic delete
     setPosts(prev => prev.filter(p => p.id !== postId));
-
-    try {
-      await PostService.deletePost(postId, currentUser.id);
-    } catch (error) {
-      console.error("Error deleting post", error);
-      alert("Erro ao deletar post. Tente novamente.");
-      loadFeed(); // Revert on error
-    }
+    try { await PostService.deletePost(postId, currentUser.id); } catch (error) { console.error(error); loadFeed(); }
   };
 
-  // ... Settings Handlers ... (Keep existing simple ones)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'coverImage') => {
     const file = e.target.files?.[0];
     if (file) {
       if (field === 'avatar') setAvatarFile(file);
       else setCoverFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettingsForm(prev => ({ ...prev, [field]: reader.result as string }));
-      };
+      reader.onloadend = () => { setSettingsForm(prev => ({ ...prev, [field]: reader.result as string })); };
       reader.readAsDataURL(file);
     }
   };
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const cleanValue = value.replace(/[@\s]/g, '');
-    const formattedHandle = `@${cleanValue}`;
-    setSettingsForm(prev => ({ ...prev, handle: formattedHandle }));
-    // Simple check
-    if (cleanValue.length === 0) setHandleError('Nome vazio');
-    else setHandleError(null);
-  };
+
   const handleSaveSettings = async () => {
     if (handleError || !currentUser) return;
-    setSaveMessage('Salvando...');
+    setSaveMessage('📤 Transmitindo arquivos...');
     try {
       let avatarUrl = settingsForm.avatar;
       let coverUrl = settingsForm.coverImage;
-      if (avatarFile) avatarUrl = await uploadImage(avatarFile) || avatarUrl;
-      if (coverFile) coverUrl = await uploadImage(coverFile) || coverUrl;
+
+      // Only upload if a new file was selected
+      if (avatarFile) {
+        const uploadedUrl = await uploadImage(avatarFile, 'avatars');
+        if (uploadedUrl) avatarUrl = uploadedUrl;
+      }
+
+      if (coverFile) {
+        const uploadedUrl = await uploadImage(coverFile, 'avatars'); // Use 'avatars' for both to be safe
+        if (uploadedUrl) coverUrl = uploadedUrl;
+      }
 
       await updateProfile({
         name: settingsForm.name,
@@ -430,12 +296,18 @@ const App: React.FC = () => {
         avatar: avatarUrl,
         coverImage: coverUrl
       });
-      setSaveMessage('Salvo!');
+
+      setAvatarFile(null);
+      setCoverFile(null);
+      setSaveMessage('✅ Perfil Atualizado!');
       setTimeout(() => setSaveMessage(null), 3000);
-    } catch (e) { console.error(e); setSaveMessage('Erro'); }
+    } catch (e) {
+      console.error(e);
+      setSaveMessage('❌ Erro na Transmissão');
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
   };
 
-  // Cover Reposition Logic
   const startReposition = () => { if (currentUser) { setTempCoverPosition(currentUser.coverPosition || '50% 50%'); setIsRepositioning(true); } };
   const cancelReposition = () => { setIsRepositioning(false); setDragStartY(null); };
   const saveReposition = async () => { if (currentUser) { await updateProfile({ ...currentUser, coverPosition: tempCoverPosition }); setIsRepositioning(false); } };
@@ -451,49 +323,39 @@ const App: React.FC = () => {
     if (!isRepositioning || dragStartY === null) return;
     e.preventDefault();
     const diff = e.clientY - dragStartY;
-    let newPercent = initialYPercent - (diff / 4); // Sensitivity
+    let newPercent = initialYPercent - (diff / 4);
     if (newPercent < 0) newPercent = 0; if (newPercent > 100) newPercent = 100;
     setTempCoverPosition(`50% ${newPercent.toFixed(1)}%`);
   };
   const handleCoverMouseUp = () => setDragStartY(null);
 
-
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-white text-blue-600 font-bold text-xl">Carregando...</div>;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-900 text-blue-500 font-black text-xl italic uppercase tracking-tighter">Iniciando Sistemas de Guarda...</div>;
   if (!currentUser) return <Login />;
 
   return (
     <Layout currentView={view} setView={setView} user={currentUser} onCreatePost={() => setView(ViewState.FEED)}>
       {view === ViewState.FEED && (
-        <div className="space-y-6">
-          {/* Create Post */}
+        <div className="max-w-xl mx-auto space-y-6">
           <CreatePost onPostCreate={handleCreatePost} user={currentUser} />
-
-          {/* Feed */}
           {loading ? (
             <div className="animate-pulse space-y-4">
-              <div className="h-64 bg-slate-100 rounded-xl"></div>
-              <div className="h-64 bg-slate-100 rounded-xl"></div>
+              <div className="h-64 bg-slate-800/50 rounded-3xl"></div>
+              <div className="h-64 bg-slate-800/50 rounded-3xl"></div>
             </div>
           ) : (
             <>
               {posts.length > 0 ? (
                 posts.map(post => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    currentUserId={currentUser?.id}
-                    currentUserAvatar={currentUser?.avatar}
-                    onLike={handleLike}
-                    onAddComment={handleAddComment}
-                    onDelete={handleDeletePost}
-                    onUserClick={handleUserClick}
-                  />
+                  <PostCard key={post.id} post={post} currentUserId={currentUser.id} currentUserAvatar={currentUser.avatar} onLike={handleLike} onAddComment={handleAddComment} onDelete={handleDeletePost} onUserClick={handleUserClick} />
                 ))
               ) : (
-                <div className="text-center py-10 bg-slate-50 rounded-xl">
-                  <p className="text-slate-500">Seu feed está vazio.</p>
-                  <p className="text-sm text-slate-400 mt-1">Siga mais pessoas para ver publicações!</p>
-                  <button onClick={() => setView(ViewState.FRIENDS)} className="mt-4 text-blue-600 font-medium">Encontrar Amigos</button>
+                <div className="text-center py-16 bg-slate-900/60 backdrop-blur-xl rounded-[2.5rem] border border-slate-700/50 shadow-2xl">
+                  <div className="w-20 h-20 bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-slate-700 shadow-lg">
+                    <svg className="w-10 h-10 text-blue-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </div>
+                  <p className="text-white font-black uppercase italic tracking-tighter text-xl mb-2">Canal de Transmissão Vazio</p>
+                  <p className="text-slate-500 text-sm font-medium px-8 leading-relaxed">Recrute mais aliados para receber informes táticos em tempo real.</p>
+                  <button onClick={() => setView(ViewState.FRIENDS)} className="mt-8 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-xl shadow-blue-500/20">Recrutar Aliados</button>
                 </div>
               )}
             </>
@@ -502,541 +364,460 @@ const App: React.FC = () => {
       )}
 
       {view === ViewState.NOTIFICATIONS && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Notificações</h2>
-          <h3 className="text-lg font-semibold text-slate-700">Solicitações de Amizade</h3>
-
-          {requestsLoading ? <div className="text-slate-400">Carregando...</div> : (
-            friendRequests.length > 0 ? (
-              friendRequests.map(req => (
-                <FriendRequestCard key={req.id} request={req} onAccept={handleAcceptRequest} onReject={handleRejectRequest} />
-              ))
-            ) : (
-              <div className="p-8 text-center bg-slate-50 rounded-xl text-slate-500">
-                Nenhuma solicitação pendente.
-              </div>
-            )
+        <div className="max-w-xl mx-auto space-y-6">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Alertas de <span className="text-blue-500">Rádio</span></h2>
+            <div className="h-1 w-12 bg-blue-600 rounded-full"></div>
+          </div>
+          {requestsLoading ? (
+            <div className="text-blue-500 font-mono text-center py-20 animate-pulse text-xs uppercase tracking-widest">Sintonizando Frequências...</div>
+          ) : friendRequests.length > 0 ? (
+            friendRequests.map(req => (
+              <FriendRequestCard key={req.id} request={req} onAccept={handleAcceptRequest} onReject={handleRejectRequest} />
+            ))
+          ) : (
+            <div className="p-16 text-center bg-slate-900/60 backdrop-blur-xl rounded-[2.5rem] border border-slate-700/50 shadow-2xl">
+              <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Silêncio de Rádio</p>
+              <p className="text-slate-600 text-[10px] mt-2 font-mono uppercase">Nenhuma solicitação de apoio captada.</p>
+            </div>
           )}
         </div>
       )}
 
       {view === ViewState.FRIENDS && (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-white">Amizades</h2>
+        <div className="max-w-xl mx-auto space-y-6 pb-20">
+          <div className="relative bg-slate-900/60 backdrop-blur-xl rounded-[2rem] border border-slate-700/50 p-6 shadow-2xl overflow-hidden group">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">Aliados & <span className="text-blue-500">Corporação</span></h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="h-1 w-8 bg-blue-500 rounded-full"></div>
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Base de Dados de Guardiões</span>
+                </div>
+              </div>
+            </div>
 
-          {/* Tabs */}
-          <div className="flex gap-2 border-b border-slate-700">
-            <button
-              onClick={() => setFriendsTab('suggestions')}
-              className={`px-4 py-2 font-medium transition-colors ${friendsTab === 'suggestions'
-                ? 'text-blue-500 border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-300'
-                }`}
-            >
-              Sugestões ({suggestions.length})
-            </button>
-            <button
-              onClick={() => setFriendsTab('received')}
-              className={`px-4 py-2 font-medium transition-colors ${friendsTab === 'received'
-                ? 'text-blue-500 border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-300'
-                }`}
-            >
-              Pendentes ({friendRequests.length})
-            </button>
-            <button
-              onClick={() => setFriendsTab('sent')}
-              className={`px-4 py-2 font-medium transition-colors ${friendsTab === 'sent'
-                ? 'text-blue-500 border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-300'
-                }`}
-            >
-              Solicitadas ({sentRequests.length})
-            </button>
+            {/* Tactical Switcher (Tabs) */}
+            <div className="relative mb-8">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar-hide snap-x no-scrollbar">
+                {[
+                  { id: 'suggestions', label: 'Sugestões', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+                  { id: 'received', label: 'Chamados', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
+                  { id: 'sent', label: 'Pendentes', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
+                  { id: 'followers', label: 'Pelotão', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+                  { id: 'following', label: 'Operações', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setFriendsTab(tab.id as any)}
+                    className={`
+                      flex items-center gap-2.5 px-6 py-3.5 rounded-2xl whitespace-nowrap snap-start transition-all duration-300 border font-black uppercase tracking-widest text-[10px]
+                      ${friendsTab === tab.id
+                        ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105 z-10'
+                        : 'bg-slate-800/40 border-slate-700/50 text-slate-500 hover:text-slate-300 hover:bg-slate-700/60 hover:border-slate-600'
+                      }
+                    `}
+                  >
+                    <svg className={`w-4 h-4 ${friendsTab === tab.id ? 'text-white' : 'text-slate-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={tab.icon} />
+                    </svg>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              {/* Fade out edges for mobile scroll indicator */}
+              <div className="absolute top-0 right-0 h-full w-12 bg-gradient-to-l from-slate-900 to-transparent pointer-events-none lg:hidden"></div>
+            </div>
+
+            <div className="space-y-4">
+              {friendsTab === 'suggestions' && (
+                <div className="space-y-4">
+                  {suggestionsLoading ? (
+                    <div className="text-blue-500 text-center py-12 animate-pulse font-mono text-xs uppercase tracking-widest">Varrendo Grade de Frequências...</div>
+                  ) : suggestions.length > 0 ? (
+                    suggestions.map(user => (
+                      <div key={user.id} className="group relative flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-slate-700/50 hover:border-blue-500/30 transition-all">
+                        <div className="flex items-center space-x-4 cursor-pointer" onClick={() => handleUserClick(user.id)}>
+                          <img src={user.avatar} className="w-12 h-12 rounded-xl object-cover border-2 border-slate-700 shadow-lg" alt={user.name} />
+                          <div>
+                            <div className="font-black text-white text-sm uppercase tracking-tight">{user.name}</div>
+                            <div className="text-[10px] font-mono text-blue-400 uppercase tracking-wider">{user.handle}</div>
+                          </div>
+                        </div>
+                        <button onClick={() => handleFollow(user.id)} className="bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-500/20 transition-all active:scale-95">Convocar</button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-16 bg-slate-800/30 rounded-3xl border border-dashed border-slate-700">
+                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Grade de Sugestões Offline</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {friendsTab === 'received' && (
+                <div className="space-y-4">
+                  {requestsLoading ? (
+                    <div className="text-slate-400 text-center py-12 animate-pulse">Processando sinais de entrada...</div>
+                  ) : friendRequests.length > 0 ? (
+                    friendRequests.map(req => (
+                      <FriendRequestCard key={req.id} request={req} onAccept={async (id) => { await handleAcceptRequest(id); loadSuggestions(); }} onReject={handleRejectRequest} />
+                    ))
+                  ) : (
+                    <div className="text-center py-16 bg-slate-800/30 rounded-3xl border border-dashed border-slate-700">
+                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Sem Sinais Recebidos</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {friendsTab === 'sent' && (
+                <div className="space-y-4">
+                  {sentRequests.length > 0 ? (
+                    sentRequests.map(user => (
+                      <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl">
+                        <div className="flex items-center space-x-4">
+                          <img src={user.avatar} className="w-12 h-12 rounded-xl object-cover border border-slate-700" alt={user.name} />
+                          <div>
+                            <div className="font-black text-white text-sm uppercase tracking-tight">{user.name}</div>
+                            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">{user.handle}</div>
+                          </div>
+                        </div>
+                        <button onClick={async () => { await handleUnfollow(user.id); loadSentRequests(); loadSuggestions(); }} className="text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-[0.2em] border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-all">Abortar</button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-16 bg-slate-800/30 rounded-3xl border border-dashed border-slate-700">
+                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Nenhuma Transmissão Pendente</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {friendsTab === 'followers' && (
+                <div className="space-y-4">
+                  {followers.length > 0 ? (
+                    followers.map(user => (
+                      <div key={user.id} className="group flex items-center justify-between p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl hover:border-blue-500/30 transition-all">
+                        <div className="flex items-center space-x-4 cursor-pointer" onClick={() => handleUserClick(user.id)}>
+                          <img src={user.avatar} className="w-12 h-12 rounded-xl object-cover border border-slate-700" alt={user.name} />
+                          <div>
+                            <div className="font-black text-white text-sm uppercase tracking-tight">{user.name}</div>
+                            <div className="text-[10px] font-mono text-blue-400 uppercase tracking-wider">{user.handle}</div>
+                          </div>
+                        </div>
+                        <button onClick={() => handleUnfollow(user.id)} className="text-slate-500 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-colors p-2">Remover</button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-16 bg-slate-800/30 rounded-3xl border border-dashed border-slate-700">
+                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Pelotão em Missão Externa</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {friendsTab === 'following' && (
+                <div className="space-y-4">
+                  {friends.length > 0 ? (
+                    friends.map(user => (
+                      <div key={user.id} className="group flex items-center justify-between p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl hover:border-purple-500/30 transition-all">
+                        <div className="flex items-center space-x-4 cursor-pointer" onClick={() => handleUserClick(user.id)}>
+                          <img src={user.avatar} className="w-12 h-12 rounded-xl object-cover border border-slate-700" alt={user.name} />
+                          <div>
+                            <div className="font-black text-white text-sm uppercase tracking-tight">{user.name}</div>
+                            <div className="text-[10px] font-mono text-purple-400 uppercase tracking-wider">{user.handle}</div>
+                          </div>
+                        </div>
+                        <button onClick={() => handleUnfollow(user.id)} className="bg-slate-700/50 hover:bg-red-600/20 text-slate-400 hover:text-red-400 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-600 hover:border-red-500/30 transition-all">Encerrar</button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-16 bg-slate-800/30 rounded-3xl border border-dashed border-slate-700">
+                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Sem Operações em Curso</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Suggestions Tab */}
-          {friendsTab === 'suggestions' && (
-            <div className="space-y-4">
-              {suggestions.length > 0 ? (
-                suggestions.map(user => (
-                  <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-xl shadow-sm">
-                    <div className="flex items-center space-x-3">
-                      <img src={user.avatar} className="w-12 h-12 rounded-full object-cover" alt={user.name} />
-                      <div>
-                        <div className="font-bold text-white">{user.name}</div>
-                        <div className="text-sm text-slate-400">{user.info}</div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleFollow(user.id)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-slate-800 rounded-xl">
-                  <p className="text-slate-400">Nenhuma sugestão no momento</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Received Requests Tab */}
-          {friendsTab === 'received' && (
-            <div className="space-y-4">
-              {requestsLoading ? (
-                <div className="text-slate-400 text-center py-8">Carregando...</div>
-              ) : friendRequests.length > 0 ? (
-                friendRequests.map(req => (
-                  <FriendRequestCard
-                    key={req.id}
-                    request={req}
-                    onAccept={async (id) => {
-                      await handleAcceptRequest(id);
-                      loadSuggestions();
-                    }}
-                    onReject={handleRejectRequest}
-                  />
-                ))
-              ) : (
-                <div className="text-center py-12 bg-slate-800 rounded-xl">
-                  <p className="text-slate-400">Nenhuma solicitação pendente</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Sent Requests Tab */}
-          {friendsTab === 'sent' && (
-            <div className="space-y-4">
-              {sentRequests.length > 0 ? (
-                sentRequests.map(user => (
-                  <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-xl shadow-sm">
-                    <div className="flex items-center space-x-3">
-                      <img src={user.avatar} className="w-12 h-12 rounded-full object-cover" alt={user.name} />
-                      <div>
-                        <div className="font-bold text-white">{user.name}</div>
-                        <div className="text-sm text-slate-400">{user.handle}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500 text-sm font-medium bg-yellow-500/10 px-3 py-1 rounded-full">Aguardando</span>
-                      <button
-                        onClick={async () => {
-                          await handleUnfollow(user.id);
-                          loadSentRequests();
-                          loadSuggestions();
-                        }}
-                        className="text-red-400 hover:text-red-300 text-sm font-medium"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-slate-800 rounded-xl">
-                  <p className="text-slate-400">Nenhuma solicitação enviada</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 
       {view === ViewState.PROFILE && (
-        <div className="max-w-2xl mx-auto">
-          {/* Digital Card - Modern Profile */}
-          <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-slate-700/50 overflow-hidden">
-            {/* Futuristic Background Effects */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-            {/* Card Header with Actions */}
-            <div className="relative p-6 pb-4 backdrop-blur-sm border-b border-slate-700/50">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-                    Meu Perfil
-                  </h2>
-                  <p className="text-slate-400 text-sm mt-1">Cartão Digital</p>
+        <div className="max-w-4xl mx-auto space-y-6 pb-20">
+          <div className="relative bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-700/50 overflow-hidden">
+            <div className="relative h-48 sm:h-64 overflow-hidden group">
+              <img
+                src={currentUser.coverImage || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1200'}
+                className={`w-full h-full object-cover transition-transform duration-700 ${isRepositioning ? 'scale-105 saturate-150' : 'group-hover:scale-105'}`}
+                style={{ objectPosition: isRepositioning ? tempCoverPosition : (currentUser.coverPosition || '50% 50%') }}
+                alt="Cover"
+                onMouseDown={handleCoverMouseDown}
+                onMouseMove={handleCoverMouseMove}
+                onMouseUp={handleCoverMouseUp}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+              <div className="absolute top-4 right-4 flex gap-2">
+                <button onClick={() => setView(ViewState.SETTINGS)} className="p-2.5 rounded-xl bg-slate-900/60 hover:bg-blue-600 border border-slate-700/50 text-white transition-all backdrop-blur-xl group/btn active:scale-95">
+                  <svg className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+                <button onClick={signOut} className="p-2.5 rounded-xl bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-500 hover:text-white transition-all backdrop-blur-xl active:scale-95">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+              </div>
+              {isRepositioning && (
+                <div className="absolute inset-x-0 bottom-6 flex justify-center gap-3 animate-bounce">
+                  <button onClick={saveReposition} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-xl border border-blue-400">Confirmar</button>
+                  <button onClick={cancelReposition} className="bg-slate-800 text-white px-6 py-2 rounded-full font-bold border border-slate-600">Cancelar</button>
                 </div>
+              )}
+              {!isRepositioning && (
+                <button onClick={startReposition} className="absolute bottom-4 right-4 bg-black/40 hover:bg-black/60 text-white p-2 rounded-lg backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+              )}
+            </div>
 
-                {/* Action Buttons - Aligned */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setView(ViewState.SETTINGS)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 text-slate-300 hover:text-white transition-all hover:scale-105 backdrop-blur-sm shadow-lg"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    <span className="text-sm font-medium hidden sm:inline">Editar</span>
+            <div className="relative px-6 pb-8 -mt-16 sm:-mt-20">
+              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-8">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-2xl opacity-40 animate-pulse"></div>
+                  <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] overflow-hidden border-4 border-slate-900 bg-slate-800 shadow-2xl">
+                    <img src={currentUser.avatar} className="w-full h-full object-cover" alt={currentUser.name} />
+                  </div>
+                </div>
+                <div className="flex-1 text-center sm:text-left mb-2">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">{currentUser.name}</h1>
+                  <p className="text-blue-400 font-mono text-lg mt-1 tracking-wider uppercase">{currentUser.handle}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 mt-8">
+                <div className="bg-slate-800/40 backdrop-blur-md rounded-3xl p-6 border border-slate-700/50">
+                  <h3 className="text-slate-500 uppercase text-[10px] font-black tracking-[0.2em] mb-3">Diretivas Operacionais</h3>
+                  <p className="text-slate-200 leading-relaxed italic">{currentUser.bio || "Nenhuma diretiva registrada no sistema."}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <button onClick={() => setProfileViewTab('posts')} className={`p-5 rounded-3xl border transition-all text-center shadow-lg active:scale-95 ${profileViewTab === 'posts' ? 'bg-blue-600/20 border-blue-500 shadow-blue-500/20' : 'bg-slate-800/80 border-slate-700/50 hover:bg-slate-700'}`}>
+                    <span className={`block text-2xl sm:text-3xl font-black mb-1 ${profileViewTab === 'posts' ? 'text-blue-400' : 'text-blue-500'}`}>{posts.filter(p => p.user.id === currentUser.id).length}</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Boletins</span>
                   </button>
-                  <button
-                    onClick={signOut}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all hover:scale-105 shadow-lg shadow-blue-500/30"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span className="text-sm font-medium hidden sm:inline">Sair</span>
+                  <button onClick={() => setProfileViewTab('followers')} className={`p-5 rounded-3xl border transition-all text-center shadow-lg active:scale-95 ${profileViewTab === 'followers' ? 'bg-blue-600/20 border-blue-500 shadow-blue-500/20' : 'bg-slate-800/80 border-slate-700/50 hover:bg-slate-700'}`}>
+                    <span className="block text-2xl sm:text-3xl font-black text-white mb-1">{followersCount}</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Pelotão</span>
+                  </button>
+                  <button onClick={() => setProfileViewTab('friends')} className={`p-5 rounded-3xl border transition-all text-center shadow-lg active:scale-95 ${profileViewTab === 'friends' ? 'bg-blue-600/20 border-blue-500 shadow-blue-500/20' : 'bg-slate-800/80 border-slate-700/50 hover:bg-slate-700'}`}>
+                    <span className="block text-2xl sm:text-3xl font-black text-white mb-1">{friends.length}</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Operações</span>
                   </button>
                 </div>
               </div>
-            </div>
 
-            {/* Card Body */}
-            <div className="relative p-6 backdrop-blur-sm">
-              {/* Avatar Section - Centered */}
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative mb-4">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-lg opacity-60 animate-pulse"></div>
-                  <div
-                    className={`relative w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 bg-slate-800 ${isRepositioning
-                      ? 'cursor-move ring-4 ring-blue-500 shadow-2xl shadow-blue-500/50'
-                      : 'border-slate-600 shadow-2xl shadow-purple-500/30'
-                      } transition-all`}
-                    onMouseDown={handleCoverMouseDown}
-                    onMouseMove={handleCoverMouseMove}
-                    onMouseUp={handleCoverMouseUp}
-                    onMouseLeave={handleCoverMouseUp}
-                  >
-                    <img
-                      src={currentUser.avatar}
-                      className="w-full h-full object-cover pointer-events-none"
-                      style={{ objectPosition: isRepositioning ? tempCoverPosition : (currentUser.coverPosition || '50% 50%') }}
-                      alt={currentUser.name}
-                    />
+              <div className="mt-12 space-y-6">
+                <div className="flex items-center justify-between px-2 italic">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-6 bg-blue-600 rounded-full"></div>
+                    <h3 className="text-xl font-black text-white tracking-tight uppercase">
+                      {profileViewTab === 'posts' ? 'Registros de Boletins' : profileViewTab === 'followers' ? 'Membros do Pelotão' : 'Aliados em Operação'}
+                    </h3>
                   </div>
-
-                  {/* Reposition Controls */}
-                  {isRepositioning && (
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 justify-center whitespace-nowrap">
-                      <button
-                        onClick={saveReposition}
-                        className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70 hover:scale-105 transition-all"
-                      >
-                        ✓ Salvar
-                      </button>
-                      <button
-                        onClick={cancelReposition}
-                        className="bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-600 hover:scale-105 transition-all"
-                      >
-                        ✕ Cancelar
-                      </button>
-                    </div>
-                  )}
-                  {!isRepositioning && (
-                    <button
-                      onClick={startReposition}
-                      className="absolute bottom-1 right-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-2 rounded-full transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110"
-                      title="Reposicionar foto"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
 
-                {/* User Info - Centered */}
-                <div className="text-center space-y-2 mb-6">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-                    {currentUser.name}
-                  </h1>
-                  <p className="text-sm text-blue-400 font-medium">{currentUser.handle}</p>
-                  {currentUser.bio && (
-                    <p className="text-sm text-slate-300 mt-3 leading-relaxed max-w-md mx-auto">
-                      {currentUser.bio}
-                    </p>
+                <div className="space-y-4">
+                  {profileViewTab === 'posts' && (
+                    <>
+                      {posts.filter(p => p.user.id === currentUser.id).length > 0 ? (
+                        posts.filter(p => p.user.id === currentUser.id).map(post => (
+                          <div key={post.id} className="bg-slate-800/40 backdrop-blur-md rounded-[1.5rem] border border-slate-700/50 p-4 sm:p-5 flex flex-col gap-4 group hover:border-blue-500/30 transition-all">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <p className="text-slate-200 text-sm line-clamp-3 mb-3 leading-relaxed">{post.content}</p>
+                                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                  <span className="flex items-center gap-1.5"><svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>{post.likes} Apoios</span>
+                                  <span className="flex items-center gap-1.5"><svg className="w-3 h-3 text-purple-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>{post.comments.length} Intervenções</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => { if (window.confirm("Confirmar exclusão desta publicação?")) handleDeletePost(post.id); }}
+                                className="bg-red-600/10 hover:bg-red-600/20 text-red-500 p-2.5 rounded-xl border border-red-500/20 transition-all active:scale-90 flex-shrink-0"
+                                title="Deletar Publicação"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
+                            </div>
+                            {post.image && (
+                              <div className="relative w-full aspect-video sm:aspect-auto sm:max-h-48 rounded-2xl overflow-hidden border border-slate-700/50">
+                                <img src={post.image} className="w-full h-full object-cover" alt="Post Intelligence" />
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-20 text-center bg-slate-900/40 rounded-[2.5rem] border border-slate-700/50 border-dashed">
+                          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Sem registros ativos.</p>
+                        </div>
+                      )}
+                    </>
                   )}
-                </div>
-
-                {/* Stats Cards - Modern Grid */}
-                <div className="grid grid-cols-3 gap-3 w-full max-w-md">
-                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-slate-700/50 hover:border-blue-500/50 transition-all group cursor-pointer">
-                    <div className="text-center">
-                      <div className="relative inline-block">
-                        <span className="font-bold text-white text-2xl block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">
-                          {posts.filter(p => p.user.id === currentUser.id).length}
-                        </span>
-                        <div className="absolute inset-0 bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      </div>
-                      <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors mt-1 block">Publicações</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-slate-700/50 hover:border-purple-500/50 transition-all group cursor-pointer">
-                    <div className="text-center">
-                      <div className="relative inline-block">
-                        <span className="font-bold text-white text-2xl block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">
-                          {followersCount}
-                        </span>
-                        <div className="absolute inset-0 bg-purple-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      </div>
-                      <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors mt-1 block">Seguidores</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-slate-700/50 hover:border-pink-500/50 transition-all group cursor-pointer">
-                    <div className="text-center">
-                      <div className="relative inline-block">
-                        <span className="font-bold text-white text-2xl block bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform">
-                          {friends.length}
-                        </span>
-                        <div className="absolute inset-0 bg-pink-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      </div>
-                      <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors mt-1 block">Seguindo</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Posts Grid */}
-          <div className="border-t border-slate-800">
-            <div className="grid grid-cols-3 gap-1">
-              {posts
-                .filter(p => p.user.id === currentUser.id)
-                .map(post => (
-                  <div key={post.id} className="aspect-square bg-slate-800 relative group overflow-hidden cursor-pointer">
-                    {post.image ? (
-                      <img src={post.image} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" alt="Post" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center p-4 text-xs text-slate-400 text-center">{post.content.substring(0, 50)}</div>
-                    )}
-                    {/* Overlay on hover */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                      <div className="flex items-center gap-1 text-white">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-sm font-bold">{post.likes}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-white">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-sm font-bold">{post.comments.length}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              }
-            </div>
-            {posts.filter(p => p.user.id === currentUser.id).length === 0 && (
-              <div className="text-center py-16 text-slate-500">
-                <svg className="w-16 h-16 mx-auto mb-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-sm">Nenhuma publicação ainda</p>
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {view === ViewState.SETTINGS && (
-        <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-slate-700/50 overflow-hidden">
-          {/* Futuristic Background Effects */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-          <div className="relative p-6 backdrop-blur-sm">
-            {/* Header */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent mb-2">
-                Editar Perfil
-              </h2>
-              <p className="text-slate-400 text-sm">Personalize suas informações</p>
-            </div>
-
+        <div className="max-w-2xl mx-auto pb-20">
+          <div className="bg-slate-900/60 backdrop-blur-xl rounded-[2rem] border border-slate-700/50 p-8 shadow-2xl">
+            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-8 flex items-center gap-3">
+              <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
+              Configurações de Identidade
+            </h2>
             <div className="space-y-6">
-              {/* Avatar Preview with Repositioning */}
-              {settingsForm.avatar && (
-                <div className="flex justify-center">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-md opacity-50 animate-pulse"></div>
-                    <div
-                      className={`relative w-32 h-32 rounded-full overflow-hidden border-4 bg-slate-800 ${isRepositioning
-                        ? 'cursor-move ring-4 ring-blue-500 shadow-2xl shadow-blue-500/50'
-                        : 'border-slate-600 shadow-xl'
-                        } transition-all`}
-                      onMouseDown={handleCoverMouseDown}
-                      onMouseMove={handleCoverMouseMove}
-                      onMouseUp={handleCoverMouseUp}
-                      onMouseLeave={handleCoverMouseUp}
-                    >
-                      <img
-                        src={settingsForm.avatar}
-                        alt="Preview"
-                        className="w-full h-full object-cover pointer-events-none"
-                        style={{ objectPosition: isRepositioning ? tempCoverPosition : (currentUser.coverPosition || '50% 50%') }}
-                      />
-                    </div>
-
-                    {/* Reposition Controls */}
-                    {isRepositioning && (
-                      <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 justify-center whitespace-nowrap">
-                        <button
-                          onClick={saveReposition}
-                          className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70 hover:scale-105 transition-all"
-                        >
-                          ✓ Salvar
-                        </button>
-                        <button
-                          onClick={cancelReposition}
-                          className="bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-600 hover:scale-105 transition-all"
-                        >
-                          ✕ Cancelar
-                        </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Foto de Perfil</label>
+                  <div className="relative group cursor-pointer" onClick={() => (document.getElementById('avatar-upload') as HTMLInputElement)?.click()}>
+                    <div className="w-24 h-24 rounded-3xl overflow-hidden border-2 border-slate-700/50 group-hover:border-blue-500 transition-colors bg-slate-800">
+                      <img src={settingsForm.avatar} className="w-full h-full object-cover" alt="Avatar Preview" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       </div>
-                    )}
-                    {!isRepositioning && (
-                      <button
-                        onClick={startReposition}
-                        className="absolute bottom-2 right-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-2 rounded-full transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110"
-                        title="Reposicionar foto"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                        </svg>
-                      </button>
-                    )}
+                    </div>
+                    <input id="avatar-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'avatar')} />
                   </div>
                 </div>
-              )}
-
-              {/* Nome */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300">
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Nome
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  value={settingsForm.name}
-                  onChange={e => setSettingsForm({ ...settingsForm, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm"
-                  placeholder="Seu nome completo"
-                />
-              </div>
-
-              {/* Handle */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300">
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                    </svg>
-                    Nome de usuário
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  value={settingsForm.handle}
-                  onChange={handleUsernameChange}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all backdrop-blur-sm"
-                  placeholder="@seuusuario"
-                />
-                {handleError && <p className="text-red-400 text-xs flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {handleError}
-                </p>}
-              </div>
-
-              {/* Bio */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300">
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                    </svg>
-                    Biografia
-                  </span>
-                </label>
-                <textarea
-                  value={settingsForm.bio}
-                  onChange={e => setSettingsForm({ ...settingsForm, bio: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all backdrop-blur-sm resize-none"
-                  rows={4}
-                  placeholder="Conte um pouco sobre você..."
-                />
-              </div>
-
-              {/* Avatar Upload */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300">
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Foto de Perfil
-                  </span>
-                </label>
-                <label className="flex items-center justify-center w-full px-4 py-3 bg-slate-800/50 border-2 border-dashed border-slate-600/50 rounded-xl cursor-pointer hover:border-cyan-500/50 hover:bg-slate-700/50 transition-all group">
-                  <div className="flex items-center gap-2 text-slate-400 group-hover:text-cyan-400 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <span className="text-sm">Escolher imagem</span>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Imagem de Capa</label>
+                  <div className="relative group cursor-pointer" onClick={() => (document.getElementById('cover-upload') as HTMLInputElement)?.click()}>
+                    <div className="w-full h-24 rounded-3xl overflow-hidden border-2 border-slate-700/50 group-hover:border-blue-500 transition-colors bg-slate-800">
+                      <img src={settingsForm.coverImage} className="w-full h-full object-cover" alt="Cover Preview" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </div>
+                    </div>
+                    <input id="cover-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'coverImage')} />
                   </div>
-                  <input type="file" className="hidden" onChange={e => handleImageUpload(e, 'avatar')} accept="image/*" />
-                </label>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Nome de Operação</label>
+                <input type="text" value={settingsForm.name} onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })} className="w-full bg-slate-800 border-none rounded-2xl p-4 text-white focus:ring-2 focus:ring-blue-500/50" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Diretivas (Bio)</label>
+                <textarea value={settingsForm.bio} onChange={(e) => setSettingsForm({ ...settingsForm, bio: e.target.value })} rows={4} className="w-full bg-slate-800 border-none rounded-2xl p-4 text-white focus:ring-2 focus:ring-blue-500/50 resize-none" />
+              </div>
+              <div className="flex justify-between items-center pt-6 border-t border-slate-800">
+                <div className="text-sm font-bold text-green-500">{saveMessage}</div>
+                <button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-blue-500/20">Salvar Alterações</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {view === ViewState.FRIEND_PROFILE && selectedFriend && (
+        <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-fade-in">
+          <div className="relative bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-700/50 overflow-hidden">
+            {/* Header Tactical Section */}
+            <div className="relative h-56 sm:h-72 overflow-hidden group">
+              <img
+                src={selectedFriend.coverImage || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1200'}
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                style={{ objectPosition: selectedFriend.coverPosition || '50% 50%' }}
+                alt="Cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+
+              {/* Floating Return Button */}
+              <button
+                onClick={() => setView(ViewState.FEED)}
+                className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-900/80 text-white backdrop-blur-xl border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all active:scale-95 z-10"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Retornar ao Comando
+              </button>
+
+              {/* Identity Token Overlay */}
+              <div className="absolute top-6 right-6 px-4 py-2 rounded-2xl bg-blue-600/20 backdrop-blur-md border border-blue-500/30">
+                <span className="text-[9px] font-black text-blue-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                  Perfil Aliado Ativo
+                </span>
+              </div>
+            </div>
+
+            {/* Profile Content HUD */}
+            <div className="relative px-8 pb-10 -mt-20">
+              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-10">
+                <div className="relative group/avatar">
+                  <div className="absolute inset-0 bg-blue-500 rounded-[2.5rem] blur-2xl opacity-30 group-hover/avatar:opacity-60 transition-opacity"></div>
+                  <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-[2.8rem] overflow-hidden border-4 border-slate-900 bg-slate-800 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover/avatar:scale-105">
+                    <img src={selectedFriend.avatar} className="w-full h-full object-cover" alt={selectedFriend.name} />
+                  </div>
+                </div>
+
+                <div className="flex-1 text-center sm:text-left mb-2 space-y-2">
+                  <div className="inline-block px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-2">
+                    Nível de Acesso: Aliado
+                  </div>
+                  <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase italic">{selectedFriend.name}</h1>
+                  <p className="text-blue-400 font-mono text-xl tracking-widest uppercase flex items-center justify-center sm:justify-start gap-2">
+                    <span className="opacity-50">#</span>{selectedFriend.handle.replace('@', '')}
+                  </p>
+                </div>
               </div>
 
+              {/* Data Display Grids */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
+                <div className="bg-slate-800/20 backdrop-blur-sm rounded-3xl p-8 border border-slate-700/30 flex flex-col justify-center">
+                  <h3 className="text-slate-500 uppercase text-[10px] font-black tracking-[0.3em] mb-4 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    Dossiê de Identidade
+                  </h3>
+                  <p className="text-slate-300 leading-relaxed italic text-lg lg:text-xl">
+                    "{selectedFriend.bio || "Este aliado mantém suas diretrizes sob sigilo absoluto."}"
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/50 text-center flex flex-col items-center justify-center group hover:border-blue-500/30 transition-all">
+                    <span className="text-3xl font-black text-white mb-1">{posts.filter(p => p.user.id === selectedFriend.id).length}</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Boletins</span>
+                  </div>
+                  <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/50 text-center flex flex-col items-center justify-center group hover:border-blue-500/30 transition-all">
+                    <span className="text-3xl font-black text-white mb-1">...</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Status: OK</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <button
-              onClick={signOut}
-              className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-blue-500/50 rounded-xl text-blue-400 font-medium hover:from-blue-600 hover:to-indigo-600 hover:text-white transition-all hover:scale-105 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/30"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Sair da conta
-            </button>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-4 italic">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-8 bg-blue-600 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.8)]"></div>
+                <h3 className="text-2xl font-black text-white tracking-widest uppercase">Registros de Campo</h3>
+              </div>
+              <div className="h-px flex-1 bg-gradient-to-r from-blue-600/50 to-transparent mx-8 hidden sm:block"></div>
+            </div>
 
-            <div className="flex items-center gap-4">
-              {saveMessage && (
-                <span className={`text-sm font-medium flex items-center gap-2 ${saveMessage === 'Salvo!' ? 'text-green-400' :
-                  saveMessage === 'Erro' ? 'text-red-400' :
-                    'text-blue-400'
-                  }`}>
-                  {saveMessage === 'Salvo!' && (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                  {saveMessage}
-                </span>
+            <div className="space-y-4">
+              {posts.filter(p => p.user.id === selectedFriend.id).length > 0 ? (
+                posts.filter(p => p.user.id === selectedFriend.id).map(post => (
+                  <PostCard key={post.id} post={post} currentUserId={currentUser.id} currentUserAvatar={currentUser.avatar} onLike={handleLike} onAddComment={handleAddComment} onDelete={handleDeletePost} onUserClick={handleUserClick} />
+                ))
+              ) : (
+                <div className="py-24 text-center bg-slate-900/40 rounded-[3rem] border-2 border-dashed border-slate-800/50">
+                  <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-slate-700">
+                    <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15l-3-3m0 0l3-3m-3 3h12M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </div>
+                  <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-xs">Canal de Transmissão Silencioso</p>
+                </div>
               )}
-              <button
-                onClick={handleSaveSettings}
-                disabled={!!handleError}
-                className="group flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-bold hover:from-blue-500 hover:to-purple-500 transition-all hover:scale-105 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Salvar Alterações
-              </button>
             </div>
           </div>
         </div>

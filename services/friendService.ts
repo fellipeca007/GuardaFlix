@@ -59,6 +59,37 @@ export const FriendService = {
         }));
     },
 
+    async getFollowers(currentUserId: string) {
+        const { data, error } = await supabase
+            .from('relationships')
+            .select(`
+        follower_id,
+        profiles:profiles!relationships_follower_id_fkey (
+          id,
+          display_name,
+          handle,
+          avatar_url,
+          bio
+        )
+      `)
+            .eq('following_id', currentUserId)
+            .eq('status', 'accepted');
+
+        if (error) {
+            console.error('Error getting followers:', error);
+            return [];
+        }
+
+        return data.map((item: any) => ({
+            id: item.profiles.id,
+            name: item.profiles.display_name || 'Usuário',
+            handle: item.profiles.handle || '@usuario',
+            avatar: item.profiles.avatar_url || 'https://picsum.photos/seed/default/150/150',
+            job: item.profiles.bio || 'Cinéfilo',
+            mutual: 0,
+        }));
+    },
+
     async getFollowersCount(userId: string) {
         const { count, error } = await supabase
             .from('relationships')
@@ -105,12 +136,21 @@ export const FriendService = {
     },
 
     async unfollowUser(currentUserId: string, targetUserId: string) {
-        const { error } = await supabase
+        // Delete both directions to ensure mutual unfriending
+        // 1. Me following them
+        const { error: error1 } = await supabase
             .from('relationships')
             .delete()
             .match({ follower_id: currentUserId, following_id: targetUserId });
 
-        if (error) throw error;
+        // 2. Them following me
+        const { error: error2 } = await supabase
+            .from('relationships')
+            .delete()
+            .match({ follower_id: targetUserId, following_id: currentUserId });
+
+        if (error1) throw error1;
+        if (error2) throw error2;
     },
 
     async checkIsFollowing(currentUserId: string, targetUserId: string): Promise<string> {
@@ -156,13 +196,27 @@ export const FriendService = {
     },
 
     async acceptRequest(currentUserId: string, requesterId: string) {
-        // I am accepting THEIR request. I am following_id, they are follower_id.
-        const { error } = await supabase
+        // 1. Update the original request (requester -> me) to 'accepted'
+        const { error: updateError } = await supabase
             .from('relationships')
             .update({ status: 'accepted' })
             .match({ following_id: currentUserId, follower_id: requesterId });
 
-        if (error) throw error;
+        if (updateError) throw updateError;
+
+        // 2. Create the reverse relationship (me -> requester) as 'accepted'
+        // This makes it mutual immediately
+        const { error: insertError } = await supabase
+            .from('relationships')
+            .upsert({
+                follower_id: currentUserId,
+                following_id: requesterId,
+                status: 'accepted'
+            }, { onConflict: 'follower_id,following_id' });
+
+        if (insertError) {
+            console.error("Error creating mutual relationship:", insertError);
+        }
     },
 
     async rejectRequest(currentUserId: string, requesterId: string) {
